@@ -1,1 +1,1 @@
-# 2026-KW-Capstone-Projectㅇㄴㄹ
+# 2026-KW-Capstone-Project
