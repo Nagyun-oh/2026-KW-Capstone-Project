@@ -22,3 +22,30 @@
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
 replay_pid*
+
+## 밑에가 추가한 사항 ##
+
+### JetBrains (IntelliJ) ###
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+/bin/
+
+### Gradle ###
+.gradle/
+build/
+
+### Docker & Database ###
+mysql_data/
+
+### OS ###
+.DS_Store
+Thumbs.db
+
+### Spring Boot ###
+# 민감한 정보(비밀번호 등)가 들어갈 수 있는 설정 파일
+# 나중에 팀원과 공유할 때는 예시 파일(application.yml.sample)을 올리는 게 정석입니다.
+# 일단은 포함시키되, 중요한 정보가 들어가면 나중에 제외를 고려해보세요.
+# help/
