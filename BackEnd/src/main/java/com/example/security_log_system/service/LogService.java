@@ -1,5 +1,6 @@
 package com.example.security_log_system.service;
 
+import com.example.security_log_system.dto.ThreatDto;
 import com.example.security_log_system.entity.DetectedThreat;
 import com.example.security_log_system.entity.IpBlacklist;
 import com.example.security_log_system.entity.LogEntry;
@@ -97,6 +98,48 @@ public class LogService {
                 .description(description)
                 .build();
         threatRepository.save(threat);
+    }
+
+    /*
+    * AI 서버가 분석해서 보낸 탐지 결과를 DB에 저장합니다.
+    * ThreatController -> LogService.saveDetectedThreat 호출
+    * */
+    public void saveDetectedThreat(ThreatDto threatDto){
+        // (선택사항) 해당 IP의 최근 로그를 찾아 연결하는 로직
+        // 1. 지금은  간단하게 AI가 준 정보 위주로 저장
+
+        DetectedThreat threat = DetectedThreat.builder()
+                .threatType(threatDto.getThreatType())
+                .severity(mapRiskLevelToSeverity(threatDto.getRiskLevel()))
+                .description(threatDto.getDescription())
+                .build();
+
+        threatRepository.save(threat);
+        System.out.println("[AI 탐지 기록] 새로운 위협이 등록되었습니다: "+threatDto.getThreatType());
+
+        // 2. 위험도가 높으면 자동으로 블랙리스트 등록
+        if(threatDto.getRiskLevel()>=4){
+            if(blacklistRepository.findByIpAddress(threatDto.getClientIp()).isEmpty()){
+                blacklistRepository.save(IpBlacklist.builder()
+                        .ipAddress(threatDto.getClientIp())
+                        .reason("AI 탐지 위협: "+threatDto.getThreatType())
+                        .dangerLevel(threatDto.getRiskLevel())
+                        .createdAt(LocalDateTime.now())
+                        .build());
+
+
+                System.out.println("[자동 차단] 고위험 IP 블랙리스트 등록: "+threatDto.getClientIp());
+            }
+        }
+
+    }
+
+    // 위험도 숫자를 (1~5) 를 "HIGH", "CRITICAL" 등의 문자열로 바꿔주는 편의 메서드
+    private String mapRiskLevelToSeverity(int level){
+        if(level>=4) return "CRITICAL";
+        if(level>=3) return "HIGH";
+        if(level>=2) return "MEDIUM";
+        return "LOW";
     }
 
 }

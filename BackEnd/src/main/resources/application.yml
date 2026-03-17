@@ -21,7 +21,7 @@ spring:
   # 2. JPA
   jpa:
     hibernate:
-      ddl-auto: update  # LogEntry같은 클래스를 보고 DB에 테이블이 없으면 자동으로 만들어주고, 필드가 추가되면 테이블 구조를 업데이트함.
+      ddl-auto: create  # LogEntry같은 클래스를 보고 DB에 테이블이 없으면 자동으로 만들어주고, 필드가 추가되면 테이블 구조를 업데이트함.
     show-sql: true      # 스프링이 내부적으로 실행하는 SQL문을 콘솔창에 보여줍니다.
     properties:
       hibernate:
