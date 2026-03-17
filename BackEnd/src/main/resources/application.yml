@@ -1,0 +1,41 @@
+spring:
+  # 0. SPRING_SESSION
+  # Spring Session이 작동하는데 필요한 전용 테이블 (SPRING_SESSION,SPRING_SESSION_ATTRIBUTES)를 DB에 자동으로 생성할지 결정합니다.
+  # always: 항상 새로 생성 ( 이미 있으면 기존 것을 사용하거나 설정에 따라 덮어씀)
+  # 쓰는 이유 :
+  #   서버 재시작 유지: 로그를 분석하거나 보안 시스템을 점검하느라 스프링 서버를 껐다 켜도, 사용자의 로그인 상태나 세션 데이터가 DB에 남아있어 로그아웃 X
+  #   멀티 서버 환경(확장성): 나중에 보안 시스템의 부하가 커져서 서버를 2대 이상 돌리게 될때, 모든 서버가 하나의 DB 세션 테이블을 바라보게 하면
+  #                        1번 서버에서 로그인했는데 2번 서버로 접속하니 로그아웃 되는 현상을 막을수 있음.
+  session:
+    jdbc:
+      initialize-schema: always
+  # 1. MySQL
+  datasource:
+    # localhost:3306: 내 컴퓨터의 3306번 포트에서 실행 중인 MySQL,
+    # security_db: 우리가 사용할 데이터베이스 이름
+    # serverTimezone=Asia/Seoul: DB 시간을 한국 표준시로 맞춥니다.
+    url: jdbc:mysql://localhost:3306/security_db?serverTimezone=Asia/Seoul
+    username: root    # DB 접속 계정 정보1
+    password: 1234    # DB 접속 계정 정보2
+    driver-class-name: com.mysql.cj.jdbc.Driver # 자바가 MySQL과 대화하기 위해 소통하는 드라이버 클래스를 지정합니다.
+  # 2. JPA
+  jpa:
+    hibernate:
+      ddl-auto: update  # LogEntry같은 클래스를 보고 DB에 테이블이 없으면 자동으로 만들어주고, 필드가 추가되면 테이블 구조를 업데이트함.
+    show-sql: true      # 스프링이 내부적으로 실행하는 SQL문을 콘솔창에 보여줍니다.
+    properties:
+      hibernate:
+        format_sql: true > 2  # 콘솔에 찍히는 SQL문을 한 줄로 뽑지않고, 읽기 좋게 들여쓰기 해서 보여줍니다.
+  # 3. Kafka
+  # 카프카 broker로부터 로그 데이터를 받아오기 위한 설정
+  kafka:
+    bootstrap-servers: localhost:9092 # 카프카 서버의 주소 (기본 9092 포트)
+    consumer:
+      group-id: log-group             # LogConsumer 코드에 적었던 그룹 ID와 일치해야함. 같은 그룹끼리는 메시지를 나눠서 처리합니다.
+      auto-offset-reset: earliest     # 컨슈머가 처음 연결됐을 때, 이전에 쌓여있던 데이터가 있다면 처음부터 다 읽어오겠다는 뜻
+      # 카프카는 데이터를 'byte'형태로 주고받으므로, 우리가 읽을 수 있는 String 문자열로 변환해주는 도구
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+# 이 스프링 프로젝트가 실행될 때 사용하는 포트번호. 웹 브라우저에서 localhost:8080으로 접속하게됨.
+server:
+  port: 8080
