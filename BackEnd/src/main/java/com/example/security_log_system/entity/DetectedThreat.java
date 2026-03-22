@@ -1,6 +1,8 @@
 package com.example.security_log_system.entity;
 
 
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -22,6 +24,7 @@ public class DetectedThreat {
     // 1:N 관계 설정 (어떤 로그에서 발생했는지)
     @ManyToOne(fetch = FetchType.LAZY)  // 성능을 위해 실무에서 필수로 사용하는 옵션
     @JoinColumn(name="log_id")
+    @JsonIgnore
     private LogEntry logEntry;
 
     @Column(name = "threat_type" , length = 50)

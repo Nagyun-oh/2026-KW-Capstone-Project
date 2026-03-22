@@ -9,6 +9,6 @@ import lombok.NoArgsConstructor;
 public class ThreatDto {
     private String threatType;  // SQL injection, XSS 등
     private String clientIp;    // 공격자 IP
-    private int riskLevel;      // 1~5단계
+    private int dangerLevel;      // 1~5단계
     private String description; // 상세 설명
 }

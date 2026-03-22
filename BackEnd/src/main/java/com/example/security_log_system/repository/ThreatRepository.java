@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
-/* 적발된 위협 내용 관리 */
+/* 탐지된 위협 데이터를 저장하고 조회하는 용도입니다. */
 @Repository
 public interface ThreatRepository extends JpaRepository<DetectedThreat,Long> {
     // 나중에 특정 로그 ID로 탐지된 위협들을 찾을 때 사용.
