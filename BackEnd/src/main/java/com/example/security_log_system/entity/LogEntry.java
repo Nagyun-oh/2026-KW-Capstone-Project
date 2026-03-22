@@ -1,5 +1,6 @@
 package com.example.security_log_system.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -8,7 +9,6 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 // Nginx 로그 핵심 정보
-
 @Entity                             // 이 클래스가 JPA 엔티티임을 선언, 즉 이 클래스는 DB테이블과 1:1로 매핑되는 객체
 @Table(name = "network_logs")       // 이 엔티티가 DB의 어느 테이블에 저장될지 지정
 @Getter                             // 모든 필드에 대한 Getter메서드 자동 생성

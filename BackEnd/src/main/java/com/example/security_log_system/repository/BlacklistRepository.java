@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
-/* 불량 IP 명단관리 */
+/* 차단된 IP들을 관리하는 용도입니다. */
 @Repository
 public interface BlacklistRepository extends JpaRepository<IpBlacklist,Long> {
     Optional<IpBlacklist> findByIpAddress(String ipAddress);
