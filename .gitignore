@@ -49,3 +49,37 @@ Thumbs.db
 # 나중에 팀원과 공유할 때는 예시 파일(application.yml.sample)을 올리는 게 정석입니다.
 # 일단은 포함시키되, 중요한 정보가 들어가면 나중에 제외를 고려해보세요.
 # help/
+
+# 1. 파이썬 가상환경 (가장 용량이 큼)
+venv/
+.venv/
+env/
+bin/
+lib/
+share/
+
+# 2. AI 모델 파일 (용량이 크고 바이너리 형태라 깃에 올리지 않음)
+*.h5
+*.pth
+*.pkl
+*.onnx
+*.model
+*.weights
+
+# 3. 데이터셋 및 로그 (수천 개의 이미지나 CSV 파일 방지)
+data/
+datasets/
+*.csv
+*.jsonl
+logs/
+.ipynb_checkpoints/
+
+# 4. 파이썬 캐시 파일
+__pycache__/
+*.py[cod]
+*$py.class
+
+# 5. OS 및 IDE 설정
+.DS_Store
+.idea/
+.vscode/

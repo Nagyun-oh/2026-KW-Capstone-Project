@@ -11,4 +11,5 @@ SecurityLogSystemApplication {
 		SpringApplication.run(SecurityLogSystemApplication.class, args);
 	}
 
+
 }
