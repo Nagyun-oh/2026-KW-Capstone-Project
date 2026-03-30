@@ -7,6 +7,7 @@ import com.example.security_log_system.entity.LogEntry;
 import com.example.security_log_system.repository.BlacklistRepository;
 import com.example.security_log_system.repository.ThreatRepository;
 import lombok.RequiredArgsConstructor;
+import org.aspectj.weaver.ast.Not;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +24,8 @@ public class ThreatService {
     private final ThreatRepository threatRepository;
     private final BlacklistRepository blacklistRepository;
     private final BlacklistService blacklistService;
+    private final NotificationService notificationService;
+
     private final Map<String, Integer> errorCounter = new ConcurrentHashMap<>();    // IP별 403 에러 횟수 저장 (IP, 횟수)
     private static final int BLOCK_THRESHOLD = 5;    // 차단 임계치 설정
 
@@ -60,7 +63,7 @@ public class ThreatService {
      * AI 서버가 분석해서 보낸 탐지 결과를 DB에 저장합니다.
      * ThreatController -> LogService.saveDetectedThreat 호출
      * */
-    public void saveDetectedThreat(ThreatDto threatDto){
+    public void saveDetectedThreat(ThreatDto threatDto) {
         // (선택사항) 해당 IP의 최근 로그를 찾아 연결하는 로직
         // 1. 지금은  간단하게 AI가 준 정보 위주로 저장
 
@@ -71,22 +74,24 @@ public class ThreatService {
                 .build();
 
         threatRepository.save(threat);
-        System.out.println("[AI 탐지 기록] 새로운 위협이 등록되었습니다: "+threatDto.getThreatType());
+        System.out.println("[AI 탐지 기록] 새로운 위협이 등록되었습니다: " + threatDto.getThreatType());
 
         // 2. 위험도가 높으면 자동으로 블랙리스트 등록
-        if(threatDto.getDangerLevel()>=4){
-            blacklistService.addToBlacklist(threatDto.getClientIp(), "AI 탐지 위협: "+threatDto.getThreatType()
+        if (threatDto.getDangerLevel() >= 4) {
+            blacklistService.addToBlacklist(threatDto.getClientIp(), "AI 탐지 위협/ 지금은 직접 POST: " + threatDto.getThreatType()
                     , threatDto.getDangerLevel());
-            System.out.println("[자동 차단] 고위험 IP 블랙리스트 등록: "+threatDto.getClientIp());
+
+            notificationService.sendUrgentAlert(threatDto.getClientIp(),"AI 탐지 위협/ 지금은 직접 POST",threatDto.getDangerLevel());
+            System.out.println("[자동 차단] 고위험 IP 블랙리스트 등록: " + threatDto.getClientIp());
         }
 
     }
 
     // 위험도 숫자를 (1~5) 를 "HIGH", "CRITICAL" 등의 문자열로 바꿔주는 편의 메서드
-    private String mapRiskLevelToSeverity(int level){
-        if(level>=4) return "CRITICAL";
-        if(level>=3) return "HIGH";
-        if(level>=2) return "MEDIUM";
+    private String mapRiskLevelToSeverity(int level) {
+        if (level >= 4) return "CRITICAL";
+        if (level >= 3) return "HIGH";
+        if (level >= 2) return "MEDIUM";
         return "LOW";
     }
 

@@ -1,10 +1,8 @@
 package com.example.security_log_system.controller;
 
-
 import com.example.security_log_system.dto.ThreatDto;
 import com.example.security_log_system.entity.DetectedThreat;
 import com.example.security_log_system.repository.ThreatRepository;
-import com.example.security_log_system.service.LogService;
 import com.example.security_log_system.service.ThreatService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;

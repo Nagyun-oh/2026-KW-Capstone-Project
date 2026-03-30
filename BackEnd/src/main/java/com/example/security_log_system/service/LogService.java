@@ -1,12 +1,8 @@
 package com.example.security_log_system.service;
 
-import com.example.security_log_system.dto.ThreatDto;
-import com.example.security_log_system.entity.DetectedThreat;
-import com.example.security_log_system.entity.IpBlacklist;
 import com.example.security_log_system.entity.LogEntry;
-import com.example.security_log_system.repository.BlacklistRepository;
 import com.example.security_log_system.repository.LogRepository;
-import com.example.security_log_system.repository.ThreatRepository;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -14,8 +10,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -83,8 +77,9 @@ public class LogService {
                 // 블랙리스트 체크
                 blacklistService.isBlocked(entry.getIpAddress());
             }
-        } catch(Exception e) {
-            System.err.println("에러 발생: "+e.getMessage());
+        } catch(JsonProcessingException e) {
+            // 로그  파싱 실패 시 런타임 예외로 던져서 전체 트랙잭션 롤백 유도
+            throw new RuntimeException("Kafka 메시지 파싱 에러: ",e);
         }
     }
 
