@@ -78,6 +78,8 @@ logs/
 __pycache__/
 *.py[cod]
 *$py.class
+capstone
+venv
 
 # 5. OS 및 IDE 설정
 .DS_Store
