@@ -1,0 +1,21 @@
+package com.example.security_log_system.dto;
+
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+// FastAPI -> Spring 응답용
+@Getter
+@NoArgsConstructor
+public class AiResponseDto {
+
+    @JsonProperty("threat_score")
+    private float threatScore;
+
+    @JsonProperty("ip_address")
+    private String ipAddress;
+
+    @JsonProperty("reason")
+    private String reason;
+}
