@@ -28,8 +28,6 @@ public class AiService {
             return null;
         }
     }
-
-
 }
 
 /*
