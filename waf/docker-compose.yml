@@ -1,0 +1,21 @@
+services:
+  waf:
+    image: owasp/modsecurity-crs:nginx
+    container_name: waf
+    ports:
+      - "80:8080"
+    environment:
+      - BACKEND=http://host.docker.internal:8080
+      - PORT=8080
+      - MODSEC_RULE_ENGINE=On
+      - PARANOIA=2
+      - ANOMALY_INBOUND=10
+      - ANOMALY_OUTBOUND=5
+      - BLOCKING_PARANOIA=1
+    volumes:
+      - ./config/crs-setup.conf:/etc/modsecurity.d/owasp-crs/crs-setup.conf
+      - ./rules/CUSTOM-001-ai-align.conf:/etc/modsecurity.d/owasp-crs/rules/CUSTOM-001-ai-align.conf
+      - ./rules/CUSTOM-002-blacklist.conf:/etc/modsecurity.d/owasp-crs/rules/CUSTOM-002-blacklist.conf
+      - ./logs:/var/log/nginx
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
