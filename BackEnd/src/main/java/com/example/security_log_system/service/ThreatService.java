@@ -1,5 +1,6 @@
 package com.example.security_log_system.service;
 
+import com.example.security_log_system.dto.AiResponseDto;
 import com.example.security_log_system.dto.ThreatDto;
 import com.example.security_log_system.entity.DetectedThreat;
 import com.example.security_log_system.entity.IpBlacklist;
@@ -85,6 +86,22 @@ public class ThreatService {
             System.out.println("[자동 차단] 고위험 IP 블랙리스트 등록: " + threatDto.getClientIp());
         }
 
+    }
+
+    public void saveAiDetectedThreat(AiResponseDto aiResponse, LogEntry entry) {
+        DetectedThreat threat = DetectedThreat.builder()
+                .logEntry(entry)
+                .threatType("AI 탐지")
+                .severity(aiResponse.getThreatScore() >= 0.8 ? "CRITICAL" : "HIGH")
+                .description(aiResponse.getReason())
+                .build();
+        threatRepository.save(threat);
+
+        // 위험도 높으면 자동 차단
+        if (aiResponse.getThreatScore() >= 0.8) {
+            blacklistService.addToBlacklist(aiResponse.getIpAddress(), aiResponse.getReason(), 4);
+            notificationService.sendUrgentAlert(aiResponse.getIpAddress(), "AI 탐지", 4);
+        }
     }
 
     // 위험도 숫자를 (1~5) 를 "HIGH", "CRITICAL" 등의 문자열로 바꿔주는 편의 메서드

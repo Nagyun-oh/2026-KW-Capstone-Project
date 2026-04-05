@@ -1,5 +1,7 @@
 package com.example.security_log_system.service;
 
+import com.example.security_log_system.dto.AiRequestDto;
+import com.example.security_log_system.dto.AiResponseDto;
 import com.example.security_log_system.entity.LogEntry;
 import com.example.security_log_system.repository.LogRepository;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -22,6 +24,7 @@ public class LogService {
     private final LogRepository logRepository;
     private final ThreatService threatService;
     private final BlacklistService blacklistService;
+    private final AiService aiService;
 
 
     // JSON 파싱을 위한 객체 추가
@@ -69,10 +72,28 @@ public class LogService {
                         .build());
                 System.out.println("[DB] network_logs에서 파싱 및 저장 완료: "+url +" ("+status+")");
 
-                // 위협 탐지 및 저장 (일단 임의로 403 에러가 나면 위협으로 기록)
+                //  AI 서버로 분석 요청
+                AiRequestDto aiRequest = AiRequestDto.builder()
+                        .method(method)
+                        .urlPath(url)
+                        .queryParams("")        // Nginx 로그엔 없으면 빈 값
+                        .bodyContent("")
+                        .userAgent("")
+                        .ipAddress(ip)
+                        .timestamp(LocalDateTime.now().toString())
+                        .build();
+
+                AiResponseDto aiResponse = aiService.analyze(aiRequest);
+
+                //  AI가 위협으로 판단하면 (threatScore >= 0.5 → ipAddress가 실제 IP)
+                if (aiResponse != null && !"0.0.0.0".equals(aiResponse.getIpAddress())) {
+                    threatService.saveAiDetectedThreat(aiResponse, entry);
+                }
+
+                /*// 위협 탐지 및 저장 (일단 임의로 403 에러가 나면 위협으로 기록)
                 if(entry.getStatusCode() ==403){
                     threatService.analyzeLogEntry(entry);
-                }
+                }*/
 
                 // 블랙리스트 체크
                 blacklistService.isBlocked(entry.getIpAddress());

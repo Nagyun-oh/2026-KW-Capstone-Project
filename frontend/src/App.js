@@ -10,7 +10,7 @@ function App(){
   const [threats,setThreats] = useState([]);
   const [blacklists,setBlacklists] = useState([]);
   const [isNewThreat,setIsNewThreat] = useState(false); // 깜빡임 효과용 상태
-
+  
   // 모든 데이터를 가져오는 함수
   const fetchAllData = () => {
     // 1. 전체 로그

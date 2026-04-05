@@ -14,6 +14,11 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration  // 이 클래스는 설정 파일
 @EnableWebSecurity  // Spring Security 활성화
@@ -29,6 +34,7 @@ public class SecurityConfig {
             // 1. CSRF 비활성화
             // CSRF = 브라우저 기반 공격 방어기능인데
             // JWT 방식은 세션을 안쓰므로 필요 없음 -> 끄기
+                .cors(cors->cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
             // 2. 세션 사용 안함
             // JWT는 서버가 로그인 상태를 기억 안해도 됨
@@ -38,6 +44,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/v1/auth/**", // 로그인/회원가입 -> 누구나 접근 가능
+                                "/api/v1/logs/**",          // 임시 추가
+                                "/api/v1/threats/**",       // 임시 추가
+                                "/api/v1/blacklist/**",     // 임시 추가
+                                "/ws-security/**",          // 임시 추가
                                 "/swagger-ui/**",           // API 문서 -> 누구나 접근 가능
                                 "/v3/api-docs/**",          // API 문서 -> 누구나 접근 가능
                                 "/health"                   // 서버 상태 확인 -> 누구나 접근 가능
@@ -62,6 +72,20 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception{
         return config.getAuthenticationManager();
+    }
+
+    // CORS 설정 Bean 추가
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource(){
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of("http://localhost:3000"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**",configuration);
+        return source;
     }
 
 }
