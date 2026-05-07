@@ -18,7 +18,7 @@
 
 ## 3. 시스템 아키텍처
 
-![alt text](docs\images\02_image.png)
+![alt text](docs/images/02_image.png)
 
 ## 4. 기술 스택
 
