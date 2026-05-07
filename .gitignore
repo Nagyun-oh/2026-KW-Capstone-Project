@@ -15,6 +15,9 @@
 hs_err_pid*
 replay_pid*
 
+# Gradle Wrapper jar는 커밋 대상
+!gradle/wrapper/gradle-wrapper.jar
+
 # ========================
 # JetBrains (IntelliJ)
 # ========================
@@ -29,6 +32,15 @@ out/
 # ========================
 .gradle/
 build/
+
+# ========================
+# Environment Variables
+# ========================
+.env
+.env.*
+**/.env
+**/.env.*
+!**/.env.example
 
 # ========================
 # Python
