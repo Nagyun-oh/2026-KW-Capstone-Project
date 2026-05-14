@@ -9,7 +9,9 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 
+// REST API 호출용으로 GET, POST 등 특정 메서드만 허용하고 주소도 제한합니다.
 // 리액트(3000번)에서 스프링(8080번)으로 데이터를 요청해도 CORS 에러없이 데이터 허용.
+
 @Configuration
 @EnableAsync
 @EnableScheduling
@@ -23,7 +25,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedMethods("GET", "POST", "PUT", "DELETE");
     }
 
-    // 2. RestTemplate 등록 (나가는 길)
+    // 2. RestTemplate 등록 (나가는 길) : for 외부(ai서버,슬랙,이메일.. 등) 통신
     @Bean
     public RestTemplate restTemplate(){
         return new RestTemplate();

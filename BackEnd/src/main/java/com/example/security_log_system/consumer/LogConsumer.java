@@ -6,6 +6,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
+// 실제 로그를 수신해서 LogService에 전달
+
 // logConsumer : Kafka에서 메시지만 받아서 logService 호출
 @Component
 @RequiredArgsConstructor

@@ -7,7 +7,7 @@ import lombok.*;
 
 /* DB 테이블 구조 정의 */
 
-@Entity                      // 이 클래스는 DB테이블이라고 알려주는 것
+@Entity                     // 이 클래스는 DB테이블이라고 알려주는 것
 @Table(name= "admin_users") // DB에 저장될 테이블 이름
 @Getter                     // 모든 필드의 get메서드 자동 생성
 @NoArgsConstructor(access = AccessLevel.PROTECTED) // 빈 생성자 만들되 ,외부에서 못 쓰게 막음
