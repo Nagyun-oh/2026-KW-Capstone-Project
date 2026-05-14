@@ -12,6 +12,8 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import java.util.HashMap;
 import java.util.Map;
 
+// 카프카 연결 규칙 설정
+
 @Configuration
 @EnableKafka // 스프링에게 "나 카프카 리스너 쓸 거야!"라고 선언
 public class KafkaConsumerConfig {

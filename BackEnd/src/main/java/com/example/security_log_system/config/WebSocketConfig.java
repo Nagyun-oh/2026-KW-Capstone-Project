@@ -7,6 +7,8 @@ import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
 // 리액트가 접속할 통로(Endpoint)
+// 실시간 통신을 위해 SockJS나 STOMP 전용 엔드포인트를 따로 관리합니다.
+
 @Configuration
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
