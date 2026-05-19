@@ -12,19 +12,43 @@ waf/
   rules/
     CUSTOM-001-ai-align.conf      # AI 모델 기반 커스텀 룰
     CUSTOM-002-blacklist.conf     # IP 블랙리스트
-  logs/                           # Nginx 로그 (Fluent Bit 연동 예정)
+  logs/                           # Nginx access/error 로그
+  fluent-bit.conf                 # access.log -> Kafka 전송 설정
+  parsers.conf                    # Nginx access.log 파서
 ```
 
 ## 실행 방법
 
 ```bash
-docker compose up -d
+docker compose -f ../BackEnd/docker-compose.yml up -d zookeeper kafka
+docker compose -f docker-compose.yml -f ../targets/juiceshop/docker-compose.yml up -d
 ```
 
 ## 트래픽 흐름
 
 ```
 클라이언트 → WAF (포트 80) → Spring Boot (포트 8080)
+```
+
+Juice Shop 테스트 대상 사용 시:
+
+```
+클라이언트 → WAF (포트 80) → Juice Shop (포트 3000)
+```
+
+## 로그 파이프라인
+
+WAF는 `/var/log/nginx/access.log`에 요청 로그를 남긴다. 이 경로는 호스트의 `waf/logs/access.log`와 연결되어 있고, Fluent Bit가 같은 파일을 읽어서 Kafka로 전송한다.
+
+```
+WAF/Nginx access.log → Fluent Bit → Kafka topic(raw-waf-logs)
+```
+
+확인 명령:
+
+```bash
+curl "http://localhost/rest/products/search?q=test"
+docker exec kafka kafka-console-consumer --bootstrap-server localhost:9092 --topic raw-waf-logs --from-beginning --timeout-ms 8000 --max-messages 5
 ```
 
 ## 현재 설정
@@ -55,6 +79,6 @@ id는 20001부터 순서대로 증가
 
 ## 미구현 (추후 연동 예정)
 
-- [ ] Fluent Bit 연동 (logs/ → Kafka)
+- [x] Fluent Bit 연동 (logs/ → Kafka)
 - [ ] 백엔드 블랙리스트 자동 동기화 (BlacklistService → CUSTOM-002)
 - [ ] AI 모델 연동

@@ -9,8 +9,8 @@ services:
       - PORT=8080
       - MODSEC_RULE_ENGINE=On
       - PARANOIA=2
-      - ANOMALY_INBOUND=10
-      - ANOMALY_OUTBOUND=5
+      - ANOMALY_INBOUND=5
+      - ANOMALY_OUTBOUND=3
       - BLOCKING_PARANOIA=1
     volumes:
       - ./rules/CUSTOM-001-ai-align.conf:/etc/modsecurity.d/owasp-crs/rules/CUSTOM-001-ai-align.conf
@@ -18,3 +18,17 @@ services:
       - ./logs:/var/log/nginx
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+  fluent-bit:
+    image: fluent/fluent-bit:2.2
+    container_name: waf-fluent-bit
+    depends_on:
+      - waf
+    volumes:
+      - ./logs:/var/log/nginx:ro
+      - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - ./parsers.conf:/fluent-bit/etc/parsers.conf:ro
+
+networks:
+  default:
+    name: security-net

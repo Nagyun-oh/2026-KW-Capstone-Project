@@ -37,5 +37,12 @@ services:
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092  # 외부(내 Spring Boot 앱)에서 카프카에 접속할 때 사용하는 주소.
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092  # 컨테이너는 kafka:29092, 호스트의 Spring Boot 앱은 localhost:9092 사용.
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1               # 테스트 환경이라 복제본을 1개만 두겠다는 뜻 (실제 운영환경은 보통 3이상을 사용함.)
+
+networks:
+  default:
+    name: security-net
