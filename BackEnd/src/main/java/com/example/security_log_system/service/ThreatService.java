@@ -6,6 +6,7 @@ import com.example.security_log_system.entity.DetectedThreat;
 import com.example.security_log_system.entity.IpBlacklist;
 import com.example.security_log_system.entity.LogEntry;
 import com.example.security_log_system.repository.BlacklistRepository;
+import com.example.security_log_system.repository.LogRepository;
 import com.example.security_log_system.repository.ThreatRepository;
 import lombok.RequiredArgsConstructor;
 import org.aspectj.weaver.ast.Not;
@@ -22,6 +23,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Transactional
 public class ThreatService {
 
+    private final LogRepository logRepository;
     private final ThreatRepository threatRepository;
     private final BlacklistRepository blacklistRepository;
     private final BlacklistService blacklistService;
@@ -88,7 +90,7 @@ public class ThreatService {
 
     }
 
-    public void saveAiDetectedThreat(AiResponseDto aiResponse, LogEntry entry) {
+    /*public void saveAiDetectedThreat(AiResponseDto aiResponse, LogEntry entry) {
         DetectedThreat threat = DetectedThreat.builder()
                 .logEntry(entry)
                 .threatType("AI 탐지")
@@ -101,6 +103,34 @@ public class ThreatService {
         if (aiResponse.getThreatScore() >= 0.8) {
             blacklistService.addToBlacklist(aiResponse.getIpAddress(), aiResponse.getReason(), 4);
             notificationService.sendUrgentAlert(aiResponse.getIpAddress(), "AI 탐지", 4);
+        }
+    }*/
+
+    public void saveAiDetectedThreat(AiResponseDto aiResponse) {
+        if (aiResponse.getLogId() ==null){
+            throw new IllegalArgumentException("AI response logId is null");
+        }
+
+        LogEntry entry = logRepository.findById(aiResponse.getLogId())
+                .orElseThrow(() -> new IllegalArgumentException(
+            "LogEntry not found. logId= "+aiResponse.getLogId()
+        ));
+
+        if("0.0.0.0".equals(aiResponse.getIpAddress())){
+            return;
+        }
+        DetectedThreat threat = DetectedThreat.builder()
+                .logEntry(entry)
+                .threatType("AI Detection")
+                .severity(aiResponse.getThreatScore() >= 0.8 ? "CRITICAL" : "HIGH")
+                .description(aiResponse.getReason())
+                .detectedAt(LocalDateTime.now())
+                .build();
+        threatRepository.save(threat);
+
+        if(aiResponse.getThreatScore() >= 0.8){
+            blacklistService.addToBlacklist(aiResponse.getIpAddress(), aiResponse.getReason(), 4);
+            notificationService.sendUrgentAlert(aiResponse.getIpAddress(), "AI Detection",4);
         }
     }
 

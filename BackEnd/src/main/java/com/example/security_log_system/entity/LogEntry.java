@@ -32,5 +32,21 @@ public class LogEntry {
 
     private LocalDateTime createdAt; // 로그 수신 시간
 
+
+    /*public enum AnalysisState {
+        PENDING,
+        COMPLETED,
+        FAILED
+    }*/
 }
 
+/*
+LogEntry 저장 직후
+→ analysisStatus = PENDING
+
+AI 결과 수신 후
+→ analysisStatus = COMPLETED
+→ DetectedThreat 저장
+
+AI 처리 실패 또는 타임아웃
+→ analysisStatus = FAILED*/

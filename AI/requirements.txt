@@ -6,3 +6,4 @@ lightgbm==4.3.0
 joblib==1.4.2
 numpy==1.26.4
 pandas==2.2.2
+kafka-python-ng==2.2.3

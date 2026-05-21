@@ -22,6 +22,18 @@ import joblib
 import numpy as np
 import os
 
+# =========추가된 부분=========
+import json
+import threading
+import time
+from kafka import KafkaConsumer, KafkaProducer
+
+KAFKA_BOOTSTRAP_SERVERS = "localhost:9092"
+AI_REQUEST_TOPIC = "ai-request-topic"
+AI_RESULT_TOPIC = "ai-result-topic"
+AI_CONSUMER_GROUP = "ai-service-group"
+# ============================
+
 # ─────────────────────────────────────────────────────────
 # 공격 판단 기준 상수
 # (train_and_save_model.py 실행 후 출력되는 값으로 교체)
@@ -73,6 +85,11 @@ def load_model():
     else:
         print(f"⚠️  모델 번들 없음: {BUNDLE_PATH}")
         print(f"   → train_and_save_model.py 를 먼저 실행하세요")
+    # =========추가된 부분=========
+    thread = threading.Thread(target=kafka_worker,daemon=True)
+    thread.start()
+    print("[Kafka AI] background worker started")
+    # ============================
 
 # ─────────────────────────────────────────────────────────
 # LabelEncoder 헬퍼
@@ -91,6 +108,9 @@ def safe_encode(encoder, value: str) -> int:
 #                                0으로 보내면 FastAPI에서 자동 계산합니다.
 # ─────────────────────────────────────────────────────────
 class HttpRequestData(BaseModel):
+    # =========추가된 부분=========
+    log_id: int | None = None
+    # ============================
     # ── 7개 피처 (이미지의 train 데이터 컬럼과 동일) ──────
     method:             str         # "GET" | "POST" | "PUT" | "DELETE"
     url_path:           str         # "/tienda1/publico/login.jsp"
@@ -112,6 +132,9 @@ class HttpRequestData(BaseModel):
 #   reason       : 왜 위협인지 (정상이면 "-")
 # ─────────────────────────────────────────────────────────
 class ThreatResponse(BaseModel):
+    # =========추가된 부분=========
+    log_id: int | None = None
+    # ============================
     threat_score: float   # ex) 0.8700
     ip_address:   str     # ex) "192.168.0.10"  또는  "0.0.0.0"
     reason:       str     # ex) "URL 공격 키워드, 특수문자 과다(7개)"  또는  "-"
@@ -200,10 +223,64 @@ def run_predict(req: HttpRequestData) -> ThreatResponse:
     hkb = 1 if any(kw in req.body_content.lower()  for kw in ATTACK_KEYWORDS) else 0
 
     return ThreatResponse(
+        # =========추가된 부분=========
+        log_id       = req.log_id,
+        # ===========================
         threat_score = round(probability, 4),
         ip_address   = req.ip_address if is_attack else "0.0.0.0",
         reason       = get_attack_reason(probability, hkq, hkb, scc, url_len),
     )
+
+# =========추가된 부분=========
+
+def handle_kafka_message(message: dict) -> dict:
+    request = HttpRequestData(**message)
+    result = run_predict(request)
+    return result.dict()
+
+def kafka_worker():
+    while model is None:
+        print("[Kafka AI] 모델 로딩 대기 중 ...")
+        time.sleep(1)
+
+    consumer = KafkaConsumer(
+        AI_REQUEST_TOPIC,
+        bootstrap_servers = KAFKA_BOOTSTRAP_SERVERS,
+        group_id = AI_CONSUMER_GROUP,
+        auto_offset_reset = "earliest",
+        enable_auto_commit = True,
+        value_deserializer = lambda v: json.loads(v.decode("utf-8")),
+    )
+
+    producer = KafkaProducer(
+        bootstrap_servers = KAFKA_BOOTSTRAP_SERVERS,
+        value_serializer = lambda v: json.dumps(v,ensure_ascii=False).encode("utf-8"),
+    )
+
+    print(f"[Kafka AI] consume start: {AI_REQUEST_TOPIC}")
+
+    for record in consumer:
+        try:
+            request_message = record.value
+            result_message = handle_kafka_message(request_message)
+
+            producer.send(
+                AI_RESULT_TOPIC,
+                key = str(result_message.get("log_id","")).encode("utf-8"),
+                value=result_message,
+            )
+            producer.flush()
+
+            print(
+                f"[Kafka AI] result sent."
+                f"log_id={result_message.get('log_id')}"
+                f"score={result_message.get('threat_score')}"
+            )
+        except Exception as e:
+            print(f"[Kafka AI Error] message 처리 실패: {e}")
+
+# ==========================================
+
 
 # ─────────────────────────────────────────────────────────
 # API 엔드포인트
