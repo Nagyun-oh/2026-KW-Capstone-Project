@@ -41,11 +41,19 @@ public class LogService {
 
             JsonNode jsonNode = objectMapper.readTree(kafkaMessage);
 
+            // {"log" : "..."} 테스트
             if(jsonNode.has("log")){
                 processNginxLog(jsonNode.get("log").asText());
                 return;
             }
 
+            // 실제 WAF Fluent Bit JSON 테스트
+            if(jsonNode.has("remote_addr") && jsonNode.has("method") && jsonNode.has("path")){
+                processWafAccessJson(jsonNode);
+                return ;
+            }
+
+            // dev_tools 테스트
             if(jsonNode.has("method") && jsonNode.has("url_path")) {
                 processAiInputJson(jsonNode);
                 return;
@@ -124,6 +132,67 @@ public class LogService {
         }
     }
 
+    private int countSpecialChars(String text){
+        if(text== null || text.isBlank()){
+            return 0;
+        }
+
+        String[] specialChars = {"'","\"","<",">","--",";","%"};
+        int count = 0;
+
+        for(String specialChar : specialChars){
+            int index = 0;
+            while((index = text.indexOf(specialChar,index)) >=0 ){
+                count++;
+                index +=specialChar.length();
+            }
+        }
+
+        return count;
+    }
+
+    private void processWafAccessJson(JsonNode jsonNode){
+        String ipAddress = jsonNode.path("remote_addr").asText("0.0.0.0");
+        String method = jsonNode.path("method").asText("");
+        String fullPath = jsonNode.path("path").asText("/");
+        int statusCode = jsonNode.path("status").asInt(0);
+        String userAgent = jsonNode.path("http_user_agent").asText("");
+
+        String urlPath = fullPath;
+        String queryParams = "";
+
+        int queryIndex = fullPath.indexOf("?");
+        if(queryIndex >= 0){
+            urlPath = fullPath.substring(0,queryIndex);
+            queryParams = fullPath.substring(queryIndex+1);
+        }
+
+        LogEntry entry = logRepository.save(LogEntry.builder()
+                .ipAddress(ipAddress)
+                .requestMethod(method)
+                .requestUrl(fullPath)
+                .statusCode(statusCode)
+                .rawLog(jsonNode.toString())
+                .createdAt(LocalDateTime.now())
+                .build());
+
+        AiRequestDto aiRequest = AiRequestDto.builder()
+                .logId(entry.getId())
+                .method(method)
+                .urlPath(urlPath)
+                .queryParams(queryParams)
+                .bodyContent("")
+                .userAgent(userAgent)
+                .urlLen(fullPath.length())
+                .specialCharCount(countSpecialChars(fullPath))
+                .ipAddress(ipAddress)
+                .timestamp(LocalDateTime.now().toString())
+                .build();
+
+        aiRequestProducer.sendAnalysisRequest(aiRequest);
+        blacklistService.isBlocked(entry.getIpAddress());
+
+    }
 
     private void processAiInputJson(JsonNode jsonNode) {
         String method = jsonNode.path("method").asText();

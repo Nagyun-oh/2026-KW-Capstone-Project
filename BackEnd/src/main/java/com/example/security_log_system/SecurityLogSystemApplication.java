@@ -10,6 +10,4 @@ SecurityLogSystemApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(SecurityLogSystemApplication.class, args);
 	}
-
-
 }

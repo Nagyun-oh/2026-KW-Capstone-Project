@@ -20,8 +20,8 @@ waf/
 ## 실행 방법
 
 ```bash
-docker compose -f ../BackEnd/docker-compose.yml up -d zookeeper kafka
-docker compose -f docker-compose.yml -f ../targets/juiceshop/docker-compose.yml up -d
+docker compose -f ../backend/docker-compose.yml up -d zookeeper kafka db
+docker compose -f ./waf/docker-compose.yml -f ../targets/juiceshop/docker-compose.yml up -d
 ```
 
 ## 트래픽 흐름
@@ -48,7 +48,7 @@ WAF/Nginx access.log → Fluent Bit → Kafka topic(raw-waf-logs)
 
 ```bash
 curl "http://localhost/rest/products/search?q=test"
-docker exec kafka kafka-console-consumer --bootstrap-server localhost:9092 --topic raw-waf-logs --from-beginning --timeout-ms 8000 --max-messages 5
+docker exec kafka kafka-console-consumer --bootstrap-server localhost:9092 --topic log-topic --from-beginning --timeout-ms 8000 --max-messages 5
 ```
 
 ## 현재 설정
