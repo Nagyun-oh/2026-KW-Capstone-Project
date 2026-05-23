@@ -10,6 +10,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AiResponseDto {
 
+    @JsonProperty("log_id")
+    private Long logId;
+
     @JsonProperty("threat_score")
     private float threatScore;
 

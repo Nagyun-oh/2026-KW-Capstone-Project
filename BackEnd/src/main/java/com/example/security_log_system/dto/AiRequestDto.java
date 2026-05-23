@@ -8,6 +8,10 @@ import lombok.Getter;
 @Getter
 @Builder
 public class AiRequestDto {
+
+    @JsonProperty("log_id")
+    private Long logId;
+
     private String method;
 
     @JsonProperty("url_path")

@@ -1,4 +1,4 @@
-package com.example.security_log_system.consumer;
+package com.example.security_log_system.kafka;
 
 
 import com.example.security_log_system.service.LogService;
@@ -7,11 +7,13 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
 // 실제 로그를 수신해서 LogService에 전달
-
+// log-topic consume
 // logConsumer : Kafka에서 메시지만 받아서 logService 호출
+
+
 @Component
 @RequiredArgsConstructor
-public class LogConsumer {
+public class LogKafkaConsumer {
     private final LogService logService;
 
     @KafkaListener(topics = "log-topic",groupId="log-group",containerFactory = "kafkaListenerContainerFactory")

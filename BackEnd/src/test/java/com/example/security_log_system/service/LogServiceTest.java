@@ -3,6 +3,7 @@ package com.example.security_log_system.service;
 
 import com.example.security_log_system.dto.AiRequestDto;
 import com.example.security_log_system.entity.LogEntry;
+import com.example.security_log_system.kafka.AiRequestProducer;
 import com.example.security_log_system.repository.LogRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,6 +11,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -41,7 +43,7 @@ public class LogServiceTest {
     private BlacklistService blacklistService;
 
     @Mock
-    private AiService aiService;
+    private AiRequestProducer aiRequestProducer;
 
     @InjectMocks
     private LogService logService;
@@ -54,7 +56,11 @@ public class LogServiceTest {
 
         // NullPointerException 에러 방지용 코드
         when(logRepository.save(any(LogEntry.class)))
-                .thenAnswer(invocation -> invocation.getArgument(0));
+                .thenAnswer(invocation -> {
+                    LogEntry logEntry = invocation.getArgument(0);
+                    ReflectionTestUtils.setField(logEntry,"id",1L);
+                    return logEntry;
+                });
 
 
         ArgumentCaptor<LogEntry> logCaptor = ArgumentCaptor.forClass(LogEntry.class);
@@ -72,9 +78,10 @@ public class LogServiceTest {
         assertThat(savedLog.getRequestUrl()).isEqualTo("/admin");
         assertThat(savedLog.getStatusCode()).isEqualTo(403);
 
-        verify(aiService).analyze(aiCaptor.capture());
+        verify(aiRequestProducer).sendAnalysisRequest(aiCaptor.capture());
 
         AiRequestDto aiRequestDto = aiCaptor.getValue();
+        assertThat(aiRequestDto.getLogId()).isEqualTo(1L);
         assertThat(aiRequestDto.getIpAddress()).isEqualTo("127.0.0.1");
         assertThat(aiRequestDto.getMethod()).isEqualTo("GET");
         assertThat(aiRequestDto.getUrlPath()).isEqualTo("/admin");
@@ -93,7 +100,7 @@ public class LogServiceTest {
 
         // then
         verify(logRepository,never()).save(any());
-        verify(aiService,never()).analyze(any());
+        verify(aiRequestProducer,never()).sendAnalysisRequest(any());
 
     }
 
