@@ -2,6 +2,10 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.5.11'
 	id 'io.spring.dependency-management' version '1.1.7'
+
+	// Open Source Security Check
+	id 'org.owasp.dependencycheck' version '12.2.2'
+	id 'org.cyclonedx.bom' version '3.2.4'
 }
 
 group = 'com.example'
@@ -47,4 +51,34 @@ dependencies {
 
 tasks.named('test') {
 	useJUnitPlatform()
+}
+
+dependencyCheck {
+	formats = ['HTML','JSON']
+	outputDirectory = layout.buildDirectory
+			.dir("reports/dependency-check")
+			.get()
+			.asFile
+			.toString()
+
+	//빌드 실패 방지
+	failBuildOnCVSS = 11
+
+	// Dependency-Check 실행 속도 안정을 위해 사용
+	nvd {
+		apiKey = System.getenv("NVD_API_KEY")
+	}
+}
+
+tasks.named('cyclonedxDirectBom') {
+	includeConfigs = ['runtimeClasspath']
+	skipConfigs = ['testRuntimeClasspath']
+
+	jsonOutput.set(file("build/reports/cyclonedx-direct/bom.json"))
+	xmlOutput.set(file("build/reports/cyclonedx-direct/bom.xml"))
+}
+
+tasks.named('cyclonedxBom') {
+	jsonOutput.set(file("build/reports/cyclonedx/bom.json"))
+	xmlOutput.set(file("build/reports/cyclonedx/bom.xml"))
 }
