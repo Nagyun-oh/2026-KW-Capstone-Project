@@ -54,7 +54,7 @@ public class BlacklistController {
         }
 
         return ResponseEntity.ok(
-                "IP "+ request.getIpAddress() + " was added to the blacklist."
+                "IP was added to the blacklist."
         );
     }
 
