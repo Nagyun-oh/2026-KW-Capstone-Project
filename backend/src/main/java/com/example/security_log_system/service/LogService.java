@@ -1,7 +1,7 @@
 package com.example.security_log_system.service;
 
 import com.example.security_log_system.dto.AiRequestDto;
-import com.example.security_log_system.dto.AiResponseDto;
+import com.example.security_log_system.dto.LogResponseDto;
 import com.example.security_log_system.entity.LogEntry;
 import com.example.security_log_system.kafka.AiRequestProducer;
 import com.example.security_log_system.repository.LogRepository;
@@ -9,6 +9,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,10 +17,7 @@ import java.time.LocalDateTime;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-// 비즈니스 로직
 
-
-// 받은 메시지를 분석하고 LogRepository를 통해 DB에 저장.
 @Transactional  // 데이터 무결성을 위해 스프링 AOP기반 트랜잭션 관리 적용
 @Service
 @RequiredArgsConstructor
@@ -29,7 +27,21 @@ public class LogService {
     private final ThreatService threatService;
     private final BlacklistService blacklistService;
     private final AiRequestProducer aiRequestProducer;
-    //private final AiService aiService;
+
+    // 전체 로그 조회
+    @Transactional(readOnly = true)
+    public Page<LogResponseDto> getAllLogs(Pageable pageable) {
+        return logRepository.findAll(pageable)
+                .map(LogResponseDto::from);
+    }
+
+    // ID로 로그 조회
+    @Transactional(readOnly = true)
+    public Page<LogResponseDto> getLogByIp(String ipAddress, Pageable pageable){
+        return logRepository.findByIpAddress(ipAddress,pageable)
+                .map(LogResponseDto::from);
+    }
+
 
     // JSON 파싱을 위한 객체 추가
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -70,7 +82,7 @@ public class LogService {
     private void processNginxLog(String message) {
 
         // 2. 줄바꿈 기호 (\r)만 들어오거나 빈 값인 경우 처리 중단
-        if (message == null || message.trim().isEmpty() || message.equals("\r")) {
+        if (message == null ||message.isBlank()) {
             return;
         }
 
@@ -87,6 +99,10 @@ public class LogService {
             String method = matcher.group(3);   // GET
             String url = matcher.group(4);      // admin
             int status = Integer.parseInt(matcher.group(5));    //403
+
+            if (blacklistService.isBlocked(ip)) {
+                return;
+            }
 
             // 1. 로그 저장
             LogEntry entry = logRepository.save(LogEntry.builder()
@@ -112,23 +128,6 @@ public class LogService {
                     .build();
 
             aiRequestProducer.sendAnalysisRequest(aiRequest);
-
-            /*AiResponseDto aiResponse = aiService.analyze(aiRequest);
-
-            //  AI가 위협으로 판단하면 (threatScore >= 0.5 → ipAddress가 실제 IP)
-            if (aiResponse != null && !"0.0.0.0".equals(aiResponse.getIpAddress())) {
-                threatService.saveAiDetectedThreat(aiResponse, entry);
-            }*/
-
-                /*// 위협 탐지 및 저장 (일단 임의로 403 에러가 나면 위협으로 기록)
-                if(entry.getStatusCode() ==403){
-                    threatService.analyzeLogEntry(entry);
-                }*/
-
-            // 블랙리스트 체크
-            blacklistService.isBlocked(entry.getIpAddress());
-
-
         }
     }
 
@@ -167,6 +166,13 @@ public class LogService {
             queryParams = fullPath.substring(queryIndex+1);
         }
 
+        // 추가 예정
+        /*if (blacklistService.isBlocked(ipAddress)) {
+            return;
+        }
+        */
+
+        // 입력된 로그 DB에 저장
         LogEntry entry = logRepository.save(LogEntry.builder()
                 .ipAddress(ipAddress)
                 .requestMethod(method)
@@ -176,6 +182,7 @@ public class LogService {
                 .createdAt(LocalDateTime.now())
                 .build());
 
+        // AI 요청 DTO 생성
         AiRequestDto aiRequest = AiRequestDto.builder()
                 .logId(entry.getId())
                 .method(method)
@@ -190,8 +197,6 @@ public class LogService {
                 .build();
 
         aiRequestProducer.sendAnalysisRequest(aiRequest);
-        blacklistService.isBlocked(entry.getIpAddress());
-
     }
 
     private void processAiInputJson(JsonNode jsonNode) {
@@ -230,14 +235,15 @@ public class LogService {
                 .build();
 
         aiRequestProducer.sendAnalysisRequest(aiRequest);
-
-        /*AiResponseDto aiResponse = aiService.analyze(aiRequest);
-
-        if(aiResponse != null && !"0.0.0.0".equals(aiResponse.getIpAddress())) {
-            threatService.saveAiDetectedThreat(aiResponse,entry);
-        }*/
-
-        blacklistService.isBlocked(entry.getIpAddress());
-
     }
 }
+
+/*
+TODO
+    - ObjectMapper를 new로 직접 만들지 말고 Spring Bean 주입으로 변경
+    - threatService 필드는 현재 거의 사용되지 않으므로 제거하거나 규칙 기반 탐지 흐름 재활성화
+    - private 메서드가 많아지므로 LogParser 클래스로 분리 검토
+    - 지원하지 않는 메시지 형식은 Logger로 남기고 DLQ 처리 검토
+    - statusCode 기본값 0 저장 케이스 검토
+    - 블랙리스트 체크 결과를 현재 사용하지 않으므로 차단 처리 흐름 명확화
+* */

@@ -1,5 +1,9 @@
 package com.example.security_log_system.dto;
 
+import com.example.security_log_system.validation.ValidIpAddress;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -7,8 +11,18 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor
 public class ThreatDto {
-    private String threatType;  // SQL injection, XSS 등
-    private String clientIp;    // 공격자 IP
-    private int dangerLevel;      // 1~5단계
-    private String description; // 상세 설명
+
+    @NotBlank(message= "Threat type is required.")
+    private String threatType;
+
+    @NotBlank(message= "Client IP is required.")
+    @ValidIpAddress
+    private String clientIp;
+
+    @Min(value = 1, message = "Danger level must be at least 1.")
+    @Max(value = 5, message = "Danger level must not exceed 5.")
+    private int dangerLevel;
+
+    @NotBlank(message = "Description is required.")
+    private String description;
 }

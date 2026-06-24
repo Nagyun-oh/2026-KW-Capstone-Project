@@ -6,24 +6,24 @@ import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBr
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
-// 리액트가 접속할 통로(Endpoint)
-// 실시간 통신을 위해 SockJS나 STOMP 전용 엔드포인트를 따로 관리합니다.
+// 실시간 알림용 WebSocket/STOMP 설정 클래스
 
 @Configuration
-@EnableWebSocketMessageBroker
+@EnableWebSocketMessageBroker       // STOMP 기반 WebSocket 메시징을 활성화
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
+    // 프론트엔드가 WebSocket 연결을 시작할 주소를 등록하는 메서드
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry){
-        registry.addEndpoint("/ws-security") // 리액트가 접속할 주소
-                .setAllowedOrigins("http://localhost:3000") // CORS 허용
+        registry.addEndpoint("/ws-security")             // 리액트가 접속할 주소
+                .setAllowedOrigins("http://localhost:3000")    // CORS 허용
                 .withSockJS();
     }
 
+    // 메시지 발행/구독 주소 규칙을 설정하는 메서드
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry){
-        registry.enableSimpleBroker("/topic"); // 메시지를 구독할 주소 (1:N) 알림
-        registry.setApplicationDestinationPrefixes("/app");
+        registry.enableSimpleBroker("/topic");  // React가 서버 알림을 구독할 때
+        registry.setApplicationDestinationPrefixes("/app");    // React가 서버로 보낼 때
     }
-
 }

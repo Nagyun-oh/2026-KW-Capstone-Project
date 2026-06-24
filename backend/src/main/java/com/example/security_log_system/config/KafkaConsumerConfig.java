@@ -1,7 +1,8 @@
 package com.example.security_log_system.config;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.common.serialization.StringDeserializer;    //  카프카용 Deserializer로 바꿔주어야 에러가 안 납니다!
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafka;
@@ -12,36 +13,47 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import java.util.HashMap;
 import java.util.Map;
 
-// 카프카 연결 규칙 설정
+// Kafka에서 메시지를 수신하기 위한 Consumer 설정 클래스
 
+// @Configuration은 이 클래스가 Spring 설정 클래스라는 뜻이다.
+// Spring이 실행될 때 이 클래스를 읽고, 내부의 @Bean 메서드들을 Spring 컨테이너에 등록
+// @EnableKafka는 @KafkaListener를 활성화한다.
 @Configuration
-@EnableKafka // 스프링에게 "나 카프카 리스너 쓸 거야!"라고 선언
+@EnableKafka
 public class KafkaConsumerConfig {
+
+    @Value("${spring.kafka.bootstrap-servers}")
+    private String bootstrapServers;
+
+    @Value("${spring.kafka.consumer.group-id}")
+    private String groupId;
 
     @Bean
     public ConsumerFactory<String, String> consumerFactory() {
+
+        // Kafka Consumer 설정 값을 담는 Map
         Map<String, Object> props = new HashMap<>();
 
-        // 1. 카프카 서버 주소 (우리 본진 위치)
-        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
+        // 로컬 개발 환경에서 사용하는 Kafka broker 주소
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
 
-        // 2. 소비자 그룹 (같은 그룹끼리 로그를 나눠서 처리함)
-        props.put(ConsumerConfig.GROUP_ID_CONFIG, "log-group");
+        // 백엔드 로그 처리용 Consumer group.
+        // 같은 group에 속한 Consumer들은 topic 메시지를 나누어 처리한다.
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId);
 
-        // 3. 역직렬화(Deserializer): 카프카에 저장된 '0101' 바이트 데이터를 '자바 문자열'로 변환
+        // Kafka 메시지는 내부적으로 byte 데이터로 저장되기 때문에 Java 객체로 바꿔야 한다.
+        // StringDeserializer는 Kafka에서 받은 byte 데이터를 String으로 변환한다.
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
 
         return new DefaultKafkaConsumerFactory<>(props);
     }
 
-    // 실제 카프카 메시지를 낚아채는 '낚싯대(ContainerFactory)' 설정
+    // Consumer 설정을 기반으로 Factory 생성.
     @Bean
     public ConcurrentKafkaListenerContainerFactory<String, String> kafkaListenerContainerFactory() {
         ConcurrentKafkaListenerContainerFactory<String, String> factory = new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory());
-        // (중요) 병렬 처리 스레드 수 설정 가능 (로그가 폭주할 때 유용!)
-        // factory.setConcurrency(3);
         return factory;
     }
 }

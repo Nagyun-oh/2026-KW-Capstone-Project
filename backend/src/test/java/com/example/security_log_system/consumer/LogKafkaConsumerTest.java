@@ -3,6 +3,7 @@ package com.example.security_log_system.consumer;
 
 import com.example.security_log_system.kafka.LogKafkaConsumer;
 import com.example.security_log_system.service.LogService;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -26,6 +27,7 @@ public class LogKafkaConsumerTest {
     private LogKafkaConsumer logKafkaConsumer;
 
     @Test
+    @DisplayName("카프카 메시지를 받았을 때 LogService를 호출하는지 확인합니다.")
     void kafkaMessageReceived_thenCallLogService(){
         // given
         String message = "{\"log\":\"127.0.0.1 - - [07/May/2026:16:00:00 +0900] \\\"GET /admin HTTP/1.1\\\" 403\"}";

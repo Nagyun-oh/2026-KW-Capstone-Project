@@ -16,13 +16,12 @@ import java.time.LocalDateTime;
 @Builder
 public class DetectedThreat {
 
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     // 1:N 관계 설정 (어떤 로그에서 발생했는지)
-    @ManyToOne(fetch = FetchType.LAZY)  // 성능을 위해 실무에서 필수로 사용하는 옵션
+    @ManyToOne(fetch = FetchType.LAZY)  // 성능을 위해 사용
     @JoinColumn(name="log_id")
     @JsonIgnore
     private LogEntry logEntry;
@@ -41,6 +40,13 @@ public class DetectedThreat {
 
     @Column(name = "detected_at")
     private LocalDateTime detectedAt;
-
-
 }
+
+/*
+TODO
+    - detectedAt이 null로 저장될 수 있는 경로 확인
+    - severity를 String 대신 Enum으로 관리 검토
+    - isChecked 기본값 false 명확화
+    - Entity 직접 반환 대신 ThreatResponseDto에서 logId만 노출
+    - threatScore 컬럼이 필요한지 검토, 현재 AI 점수는 저장되지 않음
+*/

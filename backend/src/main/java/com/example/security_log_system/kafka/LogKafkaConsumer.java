@@ -6,26 +6,28 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
-// 실제 로그를 수신해서 LogService에 전달
-// log-topic consume
-// logConsumer : Kafka에서 메시지만 받아서 logService 호출
-
-
 @Component
 @RequiredArgsConstructor
 public class LogKafkaConsumer {
+
     private final LogService logService;
 
     @KafkaListener(topics = "log-topic",groupId="log-group",containerFactory = "kafkaListenerContainerFactory")
     public void consume(String message){
         try {
-            // LogService에서 트랜잭션이 시작됨.
             logService.processRawLog(message);
         } catch (Exception e) {
             // 여기서 에러를 잡아야 카프카 리스너가 죽지 않고 다음 로그를 계속 처리함.
             System.err.println("[Kafka Consumer Error] 메시지 처리 실패: "+e.getMessage());
-            // (심화) 실패한 메시지는 따로 'dead-letter-topic'으로 보낼 수도 있음.
         }
     }
 
 }
+
+/*
+TODO
+    - System.err 대신 Logger 사용
+    - 실패 메시지를 dead-letter-topic으로 보내는 구조 검토
+    - topic/groupId를 코드에 하드코딩하지 말고 application.yml로 이동
+    - Consumer 예외 처리 정책 문서화
+*/

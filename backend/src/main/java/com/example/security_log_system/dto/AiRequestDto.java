@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Getter;
 
-// Spring -> FastAPI 요청용
+// Spring -> FastAPI DTO
 @Getter
 @Builder
 public class AiRequestDto {
@@ -50,4 +50,6 @@ public class AiRequestDto {
         special_char_count: int = 0     # 특수문자 개수  (0이면 자동 계산)
     # ── 추가 컬럼 ──────────────────────────────────────
         ip_address:         str = ""    # 요청 IP  (ex. "192.168.0.10")
-        timestamp:          str = ""    # 요청 시각 (ex. "2026-03-31T14:00:00")*/
+        timestamp:          str = ""    # 요청 시각 (ex. "2026-03-31T14:00:00")
+
+*/

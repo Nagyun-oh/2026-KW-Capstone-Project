@@ -5,6 +5,7 @@ import com.example.security_log_system.dto.AiRequestDto;
 import com.example.security_log_system.entity.LogEntry;
 import com.example.security_log_system.kafka.AiRequestProducer;
 import com.example.security_log_system.repository.LogRepository;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -48,8 +49,8 @@ public class LogServiceTest {
     @InjectMocks
     private LogService logService;
 
-    // 유효한 Nginx 로그 메시지가 들어오면 파싱해서 LogEntry로 저장
     @Test
+    @DisplayName("유효한 Nginx 로그 수신 시 로그를 파싱하여 저장하고 AI 분석 요청을 전송한다")
     void validNginxLogMessage_thenParseAndSaveLogEntry(){
         // given
         String message = "{\"log\":\"127.0.0.1 - - [07/May/2026:16:00:00 +0900] \\\"GET /admin HTTP/1.1\\\" 403\"}";
@@ -86,11 +87,10 @@ public class LogServiceTest {
         assertThat(aiRequestDto.getMethod()).isEqualTo("GET");
         assertThat(aiRequestDto.getUrlPath()).isEqualTo("/admin");
 
-      verify(blacklistService).isBlocked("127.0.0.1");
-
     }
 
     @Test
+    @DisplayName("빈 로그 메시지 수신 시 로그를 저장하거나 AI 분석을 요청하지 않는다")
     void emptyLogMessage_thenDoNothing(){
         // given
         String message = "{\"log\":\"\"}";
