@@ -2,6 +2,7 @@ package com.example.security_log_system.service;
 
 import com.example.security_log_system.dto.AiResponseDto;
 import com.example.security_log_system.dto.ThreatDto;
+import com.example.security_log_system.dto.ThreatResponseDto;
 import com.example.security_log_system.entity.DetectedThreat;
 import com.example.security_log_system.entity.IpBlacklist;
 import com.example.security_log_system.entity.LogEntry;
@@ -10,6 +11,8 @@ import com.example.security_log_system.repository.LogRepository;
 import com.example.security_log_system.repository.ThreatRepository;
 import lombok.RequiredArgsConstructor;
 import org.aspectj.weaver.ast.Not;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,43 +35,16 @@ public class ThreatService {
     private final Map<String, Integer> errorCounter = new ConcurrentHashMap<>();    // IP별 403 에러 횟수 저장 (IP, 횟수)
     private static final int BLOCK_THRESHOLD = 5;    // 차단 임계치 설정
 
-    public void analyzeLogEntry(LogEntry entry) {
-        // 1. 단순 규칙 기반 탐지 (403 에러)
-        if (entry.getStatusCode() == 403) {
-            saveThreat(threatRepository, entry, "Forbidden Access", "MEDIUM", "허가되지 않은 경로 접근 시도");
-
-            // 해당 IP의 에러 횟수 증가
-            int count = errorCounter.merge(entry.getIpAddress(), 1, Integer::sum);
-            System.out.println("[감시] IP: " + entry.getIpAddress() + " | 403 에러 누적: " + count + "회");
-            if (count >= BLOCK_THRESHOLD) {
-                blacklistService.addToBlacklist(entry.getIpAddress(), "403 반복 접근", 3);
-                errorCounter.remove(entry.getIpAddress());  // 차단 후 카운터 초기화
-            }
-        } else if (entry.getStatusCode() == 200) {
-            // 정상 접속 시 카운트를 조금 깎아주거나 초기화 하는 로직을 넣으면 더 정교해짐. (추후 추가 예정)
-            errorCounter.remove(entry.getIpAddress());
-        }
-    }
-
-
-    // DB 위협탐지 테이블에 저장
-    private void saveThreat(ThreatRepository threatRepository, LogEntry entry, String type, String severity, String description) {
-        DetectedThreat threat = DetectedThreat.builder()
-                .logEntry(entry)        // log_id를 위해 부모 객체인 entry를 통째로 전달
-                .threatType(type)
-                .severity(severity)
-                .description(description)
-                .build();
-        threatRepository.save(threat);
+    @Transactional(readOnly = true)
+    public Page<ThreatResponseDto> getAllThreats(Pageable pageable){
+        return threatRepository.findAll(pageable)
+                .map(ThreatResponseDto::from);
     }
 
     /*
-     * AI 서버가 분석해서 보낸 탐지 결과를 DB에 저장합니다.
-     * ThreatController -> LogService.saveDetectedThreat 호출
+     * API 테스트
      * */
     public void saveDetectedThreat(ThreatDto threatDto) {
-        // (선택사항) 해당 IP의 최근 로그를 찾아 연결하는 로직
-        // 1. 지금은  간단하게 AI가 준 정보 위주로 저장
 
         DetectedThreat threat = DetectedThreat.builder()
                 .threatType(threatDto.getThreatType())
@@ -77,34 +53,18 @@ public class ThreatService {
                 .build();
 
         threatRepository.save(threat);
-        System.out.println("[AI 탐지 기록] 새로운 위협이 등록되었습니다: " + threatDto.getThreatType());
+        System.out.println("[API 테스트] 새로운 위협이 등록되었습니다: " + threatDto.getThreatType());
 
         // 2. 위험도가 높으면 자동으로 블랙리스트 등록
         if (threatDto.getDangerLevel() >= 4) {
-            blacklistService.addToBlacklist(threatDto.getClientIp(), "AI 탐지 위협/ 지금은 직접 POST: " + threatDto.getThreatType()
+            blacklistService.addToBlacklist(threatDto.getClientIp(), " 직접 POST: " + threatDto.getThreatType()
                     , threatDto.getDangerLevel());
 
-            notificationService.sendUrgentAlert(threatDto.getClientIp(),"AI 탐지 위협/ 지금은 직접 POST",threatDto.getDangerLevel());
-            System.out.println("[자동 차단] 고위험 IP 블랙리스트 등록: " + threatDto.getClientIp());
+            notificationService.sendUrgentAlert(threatDto.getClientIp()," 직접 POST",threatDto.getDangerLevel());
+            System.out.println("[API 테스트] 고위험 IP 블랙리스트 등록: " + threatDto.getClientIp());
         }
 
     }
-
-    /*public void saveAiDetectedThreat(AiResponseDto aiResponse, LogEntry entry) {
-        DetectedThreat threat = DetectedThreat.builder()
-                .logEntry(entry)
-                .threatType("AI 탐지")
-                .severity(aiResponse.getThreatScore() >= 0.8 ? "CRITICAL" : "HIGH")
-                .description(aiResponse.getReason())
-                .build();
-        threatRepository.save(threat);
-
-        // 위험도 높으면 자동 차단
-        if (aiResponse.getThreatScore() >= 0.8) {
-            blacklistService.addToBlacklist(aiResponse.getIpAddress(), aiResponse.getReason(), 4);
-            notificationService.sendUrgentAlert(aiResponse.getIpAddress(), "AI 탐지", 4);
-        }
-    }*/
 
     public void saveAiDetectedThreat(AiResponseDto aiResponse) {
         if (aiResponse.getLogId() ==null){
@@ -144,4 +104,14 @@ public class ThreatService {
 
 }
 
+/*
+TODO
+    - blacklistRepository, IpBlacklist, Not import는 현재 사용되지 않으므로 제거
+    - 규칙 기반 탐지 analyzeLogEntry를 사용할지 제거할지 결정
+    - threatScore 값을 DetectedThreat에 저장할지 검토
+    - severity 문자열을 Enum으로 변경 검토
+    - saveDetectedThreat와 saveAiDetectedThreat 역할 구분 문서화
+    - System.out 대신 Logger 사용
+    - AI 응답 검증 추가: score 범위, reason null 처리
+*/
 

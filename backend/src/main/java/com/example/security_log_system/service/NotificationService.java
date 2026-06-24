@@ -13,7 +13,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class NotificationService {
 
-    private final SimpMessagingTemplate messagingTemplate;  // 웹소켓 전송 도구
+    // 웹소켓 전송 도구
+    private final SimpMessagingTemplate messagingTemplate;
 
     // 비동기 처리: 슬랙이나 메일 전송이 늦어져도 로그 저장은 바로 완료됨
     @Async

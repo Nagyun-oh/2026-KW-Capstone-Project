@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
 public class ReportScheduler {
     private final ThreatRepository threatRepository;
 
-    // 매일 자정 실행 (cron = "0 0 0 * * *")
     // 테스트용: 1분마다 실행하여 작동 확인
     @Scheduled(cron = "0 * * * * *")
     public void generateReport(){

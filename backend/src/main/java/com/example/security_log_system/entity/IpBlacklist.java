@@ -33,3 +33,12 @@ public class IpBlacklist {
     private LocalDateTime expiredAt;
 
 }
+
+/*
+TODO
+    - ipAddress에 unique 제약 추가 검토
+    - dangerLevel 범위 명확화, 예: 1~5
+    - expiredAt 사용 정책 문서화 또는 자동 만료 로직 추가
+    - createdAt 자동 설정 방식으로 변경 검토
+    - reason null 허용 여부 결정
+*/

@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-// FastAPI -> Spring 응답용
+// FastAPI -> Spring DTO
 @Getter
 @NoArgsConstructor
 public class AiResponseDto {

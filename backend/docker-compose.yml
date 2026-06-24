@@ -1,8 +1,6 @@
 # Dokcer Compose 설정 파일
 # 인프라(DB,Kafka,Zookeeper)을 복잡한 설치 과정없이 한번에 실행하기 위한 컨테이너 배치도
 
-version: '3.8'
-
 services:
   # 1. 데이터베이스 (MySQL)
   db:

@@ -10,6 +10,16 @@ import java.util.List;
 /* 탐지된 위협 데이터를 저장하고 조회하는 용도입니다. */
 @Repository
 public interface ThreatRepository extends JpaRepository<DetectedThreat,Long> {
-    // 나중에 특정 로그 ID로 탐지된 위협들을 찾을 때 사용.
     List<DetectedThreat> findByLogEntryId(Long logId);
 }
+
+/*
+TODO
+    - 최신 위협순 조회 메서드 추가
+      예: findTop100ByOrderByDetectedAtDesc()
+    - severity별 조회 메서드 추가 검토
+      예: findBySeverity(String severity)
+    - 확인하지 않은 위협 조회 메서드 추가 검토
+      예: findByIsCheckedFalse()
+    - findByLogEntryId를 사용하는 상세 API 추가 여부 검토
+*/
