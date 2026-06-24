@@ -8,15 +8,15 @@ function useSecurityData() {
 
   const fetchAllData = () => {
     axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/v1/logs`)
-      .then(response => setLogs(response.data))
+      .then(response => setLogs(response.data.content))
       .catch(err => console.error("전체 로그 로딩 실패", err));
 
     axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/v1/threats`)
-      .then(response => setThreats(response.data))
+      .then(response => setThreats(response.data.content))
       .catch(err => console.error("위협 로그 로딩 실패", err));
 
     axios.get(`${process.env.REACT_APP_API_BASE_URL}/api/v1/blacklist`)
-      .then(response => setBlacklists(response.data))
+      .then(response => setBlacklists(response.data.content))
       .catch(err => console.error("블랙리스트 로딩 실패", err));
   };
 

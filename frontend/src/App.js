@@ -13,13 +13,12 @@ function App() {
   const { logs, threats, blacklists, setLogs,setThreats,setBlacklists ,fetchAllData } = useSecurityData();
 
   const {isNewThreat} = useWebSocket ((message) => {
-    setThreats(prev => [message,...prev]);
     fetchAllData();
   });
 
  return (
     <div style={{ padding: '30px', backgroundColor: '#f4f7f6', minHeight: '100vh', fontFamily: 'sans-serif' }}>
-      <h1>🛡️ AI 보안 통합 관제 센터</h1>
+      <h1>🛡️ 대시보드 </h1>
       {/* 토스트 컨테이너 (팝업이 뜰 위치) */}
       <ToastContainer />
 
