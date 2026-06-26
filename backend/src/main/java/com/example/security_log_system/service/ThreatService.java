@@ -28,7 +28,6 @@ public class ThreatService {
 
     private final LogRepository logRepository;
     private final ThreatRepository threatRepository;
-    private final BlacklistRepository blacklistRepository;
     private final BlacklistService blacklistService;
     private final NotificationService notificationService;
 
@@ -73,7 +72,7 @@ public class ThreatService {
 
         LogEntry entry = logRepository.findById(aiResponse.getLogId())
                 .orElseThrow(() -> new IllegalArgumentException(
-            "LogEntry not found. logId= "+aiResponse.getLogId()
+            "LogEntry not found"
         ));
 
         if("0.0.0.0".equals(aiResponse.getIpAddress())){
@@ -98,8 +97,7 @@ public class ThreatService {
     private String mapRiskLevelToSeverity(int level) {
         if (level >= 4) return "CRITICAL";
         if (level >= 3) return "HIGH";
-        if (level >= 2) return "MEDIUM";
-        return "LOW";
+        return "MEDIUM";
     }
 
 }

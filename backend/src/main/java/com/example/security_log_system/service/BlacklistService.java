@@ -22,11 +22,11 @@ public class BlacklistService {
                 .map(BlacklistResponseDto::from);
     }
 
-    // 추가
+    // 블랙리스트 등록 성공시 true 반환
     public boolean addToBlacklist(String ip, String reason,int dangerLevel){
 
-        // 중복처리
-        if(blacklistRepository.findByIpAddress(ip).isPresent()){
+        // 블랙리스트에 해당 ip가 이미 존재하면, 등록하지 않는다.
+        if(isBlocked(ip)){
             System.out.println("이미 블랙리스트에 등록되었습니다.");
             return false;
         }
