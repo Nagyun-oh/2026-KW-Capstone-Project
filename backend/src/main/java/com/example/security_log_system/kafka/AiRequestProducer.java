@@ -15,8 +15,8 @@ public class AiRequestProducer {
 
     private static final String AI_REQUEST_TOPIC = "ai-request-topic";
 
-    private final KafkaTemplate<String,String> kafkaTemplate;   // Kafka 전송 담당
-    private final ObjectMapper objectMapper;                    // AiRequestDto를 JSON 문자열로 변환하는 담당
+    private final KafkaTemplate<String,String> kafkaTemplate;   // Kafka 전송 역할
+    private final ObjectMapper objectMapper;                    // AiRequestDto를 JSON 문자열로 변환하는 역할
 
     public void sendAnalysisRequest(AiRequestDto request){
         try {

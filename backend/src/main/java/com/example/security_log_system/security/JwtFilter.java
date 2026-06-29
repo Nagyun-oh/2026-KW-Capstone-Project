@@ -26,13 +26,12 @@ public class JwtFilter extends OncePerRequestFilter {
 
     // HTTP 요청이 Controller에 도착하기 전에 실행되는 메서드
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain)
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
         throws ServletException, IOException {
 
-        // 요청 헤더에서 "Authorizaion" 값 꺼냄
+        // 요청 헤더에서 "Authorization" 값 꺼냄
         // ex) "Bearer eyJhbGcoi...."
+        // Bearer 형식을 사용하는 이유는 무상태성, 보안성이 뛰어나기 때문이다.
         String header = request.getHeader("Authorization");
 
         if(header !=null && header.startsWith("Bearer ")){
@@ -67,8 +66,6 @@ public class JwtFilter extends OncePerRequestFilter {
 
 /*
 TODO
-    - Authorization 오타 주석 수정
-    - 깨진 한글 주석 수정
     - ROLE_ADMIN을 하드코딩하지 말고 토큰 claim 또는 DB에서 가져오도록 개선
     - SecurityContext에 WebAuthenticationDetailsSource로 request detail 추가 검토
     - 인증 실패 원인을 로그로 남길지 검토
