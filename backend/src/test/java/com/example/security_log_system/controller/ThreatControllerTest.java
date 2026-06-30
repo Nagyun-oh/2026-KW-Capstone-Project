@@ -163,6 +163,53 @@ public class ThreatControllerTest {
 
         verifyNoInteractions(threatService);
     }
+
+    @Test
+    @DisplayName("Client IP가 비어 있으면 400 Bad Request를 반환한다")
+    void receiveDetect_whenClientIpIsBlank_thenReturnBadRequest() throws Exception{
+
+        mockMvc.perform(post("/api/v1/threats/detect")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "threatType" : "SQL Injection",
+                            "clientIp" : "",
+                            "dangerLevel":4,
+                            "description": "SQL Injection detected"
+                        }
+                        """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.clientIp")
+                        .value("Client IP is required."));
+
+        verifyNoInteractions(threatService);
+    }
+
+    @Test
+    @DisplayName("위험도가 1보다 작으면 400 Bad Request를 반환한다")
+    void receiveDetect_whenDangerLevelIsLessThanOne_thenReturnBadRequest() throws  Exception{
+
+        mockMvc.perform(post("/api/v1/threats/detect")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "threatType" : "SQL Injection",
+                            "clientIp" : "192.168.0.10",
+                            "dangerLevel":0,
+                            "description": "SQL Injection detected"
+                        }
+                        
+                        """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.dangerLevel")
+                        .value("Danger level must be at least 1."));
+
+        verifyNoInteractions(threatService);
+    }
+
+
+
+
 }
 
 /*

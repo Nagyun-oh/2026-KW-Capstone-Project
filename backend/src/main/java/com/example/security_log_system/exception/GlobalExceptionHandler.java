@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -16,6 +17,7 @@ import java.util.Map;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
+    // @RequestBody @Valid DTO 검증 실패
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(
             MethodArgumentNotValidException exception
@@ -36,6 +38,38 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(response);
 
     }
+
+
+    // @RequestParam, @PathVariable 검증 실패
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<ErrorResponse> handleMethodValidation(
+            HandlerMethodValidationException exception
+    ) {
+        Map<String, String> errors = new LinkedHashMap<>();
+
+        exception.getParameterValidationResults()
+                .forEach(result -> {
+                    String parameterName
+                            = result.getMethodParameter().getParameterName();
+
+                    result.getResolvableErrors()
+                            .forEach(error -> errors.put(
+                                    parameterName,
+                                    error.getDefaultMessage()
+                            ));
+                });
+
+        ErrorResponse response = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Request validation failed.",
+                errors,
+                LocalDateTime.now()
+        );
+
+    return ResponseEntity.badRequest().body(response);
+
+    }
+
 }
 
 /*

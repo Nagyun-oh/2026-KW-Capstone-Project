@@ -21,8 +21,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -138,6 +137,24 @@ public class LogControllerTest {
         verify(logService).getLogByIp(ipAddress, pageable);
     }
 
+    @Test
+    @DisplayName("잘못된 IP로 로그를 검색하면 400 Bad Request를 반환한다")
+    void getLogsByIp_whenIpIsInvalid_thenReturnBadRequest() throws Exception{
+
+        mockMvc.perform(get("/api/v1/logs/search")
+                .param("ip","999.999.999.999")
+                .param("page","0")
+                .param("size","20"))
+                .andExpect(status().isBadRequest())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.ip")
+                        .value("Invalid IPv4 or IPv6 address."));
+
+        verifyNoInteractions(logService);
+
+    }
+
+
     private LogResponseDto createLogResponse(String ipAddress){
         return LogResponseDto.builder()
                 .id(1L)
@@ -155,6 +172,7 @@ public class LogControllerTest {
     1. 전체 로그 조회 성공
     2. 유효한 IPv4/IPv6 검색 성공
     3. Service에 pagination 정보가 정확히 전달되는지
+    4. 잘못된 IP로 로그를 검색하면 400 Bad Request를 반환한다
 
     MockMvc GET 요청
     → LogController

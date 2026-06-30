@@ -71,8 +71,3 @@ public class BlacklistController {
 
 }
 
-/*
-TODO
-    - 중복 등록 시 단순 문자열보다 에러 응답 DTO 사용
-    - 삭제 API DELETE /api/v1/blacklist/{id} 또는 /ip/{ip} 추가 고려
-*/

@@ -23,7 +23,6 @@ import java.util.List;
 // 기능 : 전체 로그 조회 API
 
 @Tag(name = "Log API", description = "전체 로그 조회 및 관리 API")
-@Validated
 @RestController
 @RequestMapping("/api/v1/logs")
 @RequiredArgsConstructor

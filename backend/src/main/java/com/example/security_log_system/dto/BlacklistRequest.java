@@ -18,7 +18,7 @@ public class BlacklistRequest {
     private String reason;
 
     @Min(value = 1 , message = "Danger level must be at least 1.")
-    @Max(value = 5 , message = "Danger level must be not exceed 5.")
+    @Max(value = 5 , message = "Danger level must not exceed 5.")
     @JsonAlias("dangerlevel")
     private int dangerLevel;
 }
