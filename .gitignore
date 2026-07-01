@@ -93,4 +93,7 @@ Thumbs.db
 # IDE (기타)
 # ========================
 .vscode/
+
+# 내가 추가했다.
 AI/capstone/
+AI/catboost_info/
