@@ -48,13 +48,3 @@ public class ThreatController {
         return ResponseEntity.ok("Threat recorded successfully.");
     }
 }
-
-/*
-TODO
-    - DetectedThreat Entity를 직접 반환하지 말고 ThreatResponseDto 사용
-    - findAll() 대신 최신순/pagination 적용
-    - /detect가 실제 운영 흐름인지, 테스트용 API인지 문서에 명확히 표시
-    - ThreatDto에 @Valid 검증 추가
-    - Kafka 기반 AI 결과 처리와 /detect HTTP 처리 역할을 구분해서 정리
-    - Controller에서 Repository 직접 접근 대신 ThreatService로 조회 로직 이동
-* */

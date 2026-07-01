@@ -7,6 +7,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -106,6 +107,74 @@ public class BlacklistControllerTest {
                         .value("Invalid IPv4 or IPv6 address."));
 
         // Validation이 Controller 실행 전에 실패했으므로 Service가 한번도 호출되지 않았는지 확인.
+        verifyNoInteractions(blacklistService);
+    }
+
+    @Test
+    @DisplayName("IP 주소가 비어 있으면 400 Bad Request를 반환한다")
+    void addBlacklist_whenIpAddressIsBlank_thenReturnBadRequest() throws Exception {
+
+        mockMvc.perform(post("/api/v1/blacklist")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "ipAddress": "",
+                            "reason": "Repeated Attack",
+                            "dangerLevel": 4
+                        }
+                        """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message")
+                        .value("Request validation failed."))
+                .andExpect(jsonPath("$.errors.ipAddress")
+                        .value("Ip address is required."));
+
+        verifyNoInteractions(blacklistService);
+    }
+
+    @Test
+    @DisplayName("차단 사유가 비어 있으면 400 Bad Request를 반환한다")
+    void addBlacklist_whenReasonIsBlank_thenReturnBadRequest() throws Exception {
+
+        mockMvc.perform(post("/api/v1/blacklist")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                        {
+                            "ipAddress": "192.168.0.10",
+                            "reason": "",
+                            "dangerLevel": 4
+                        }
+                        """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message")
+                        .value("Request validation failed."))
+                .andExpect(jsonPath("$.errors.reason")
+                        .value("Reason is required."));
+
+        verifyNoInteractions(blacklistService);
+    }
+
+    @ParameterizedTest
+    @CsvSource({
+            "0, Danger level must be at least 1.",
+            "6, Danger level must not exceed 5."
+    })
+    @DisplayName("위험도가 1~5 범위를 벗어나면 400 Bad Request를 반환한다")
+    void addBlacklist_whenDangerLevelIsOutOfRange_thenReturnBadRequest(int dangerLevel,String expectedMessage)
+        throws Exception {
+
+        mockMvc.perform(post("/api/v1/blacklist")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "ipAddress": "192.168.0.10",
+                            "reason" : "Repeated Attack",
+                            "dangerLevel":%d
+                        }
+                        """.formatted(dangerLevel)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.dangerLevel")
+                        .value(expectedMessage));
         verifyNoInteractions(blacklistService);
     }
 }
