@@ -4,6 +4,7 @@ import LogTable from './LogTable';
 // 대시보드 테이블 컴포넌트의 렌더링 검증 테스트 (API 호출 테스트 X)
 // -> LogTable이 logs 데이터를 받아서 IP,Method,URL,Status 를 화면에 제대로 출력하는지 검증
 test('전체 네트워크 로그를 화면에 표시한다.', () =>{
+
     // 테스트 로그 데이터 생성
     const logs = [
         {   
@@ -16,9 +17,23 @@ test('전체 네트워크 로그를 화면에 표시한다.', () =>{
         }
     ];
 
+    const pageInfo = {
+        number:0,
+        totalPages:1,
+        totalElements:1,
+        size:20,
+    };
+    const onPageChange = jest.fn();
+
     // LogTable에 logs를 props로 넣어서 화면에 렌더링
     // -> 실제 브라우저를 띄우는게 아니라, 테스트 환경에서 가상의 DOM
-    render(<LogTable logs={logs}/>); 
+    render(
+    <LogTable 
+        logs={logs}
+        pageInfo={pageInfo}
+        onPageChange={onPageChange}
+    />)
+    ; 
 
     // 화면에 해당 텍스트가 실제로 표시됐는지 확인
     expect(screen.getByText(/전체 네트워크 로그/)).toBeInTheDocument();
