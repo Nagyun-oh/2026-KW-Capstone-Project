@@ -11,7 +11,22 @@ test('탐지된 위협 정보를 화면에 표시한다', () => {
         }
     ];
 
-    render(<ThreatTable threats = {threats} isNewThreat={true} />);
+     const pageInfo = {
+        number:0,
+        totalPages:1,
+        totalElements:1,
+        size:20,
+    };
+    const onPageChange = jest.fn();
+
+    render(
+    <ThreatTable
+        threats = {threats}
+        isNewThreat={true}
+        pageInfo={pageInfo}
+        onPageChange={onPageChange}
+    />
+    );
 
     expect(screen.getByText(/실시간 위협 탐지/)).toBeInTheDocument();
     expect(screen.getByText('AI 탐지')).toBeInTheDocument();
