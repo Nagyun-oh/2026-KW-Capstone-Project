@@ -46,6 +46,7 @@ build/
 # Python
 # ========================
 # 가상환경
+capstone/Lib/site-packages/
 venv/
 .venv/
 env/

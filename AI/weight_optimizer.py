@@ -41,10 +41,15 @@ PATH_TRAVERSAL_PATTERNS = ["../","..\\","%2e%2e","etc/passwd","boot.ini"]
 SPECIAL_CHARS           = ["'",'"',"<",">","--",";","%","(",")",  "="]
 CATEGORICAL_COLUMNS     = ["method","user_agent","url_path","file_extension"]
 FEATURES = [
-    "method_encoded","user_agent_encoded","url_path_encoded","file_extension_encoded",
-    "url_len","query_len","body_len","total_len","path_depth","param_count",
-    "special_char_count","special_char_ratio","encoded_char_count","digit_ratio","alpha_ratio",
-    "has_keywords_query","has_keywords_body",
+    "method_encoded","user_agent_encoded",
+    #"url_path_encoded","file_extension_encoded",    "url_len","query_len",
+    "body_len",
+    #"total_len","path_depth","param_count",
+    "special_char_count","special_char_ratio",
+    #"encoded_char_count",
+    "digit_ratio","alpha_ratio",
+    #"has_keywords_query",
+    "has_keywords_body",
     "sql_keyword_count","xss_keyword_count","path_traversal_count",
     "has_script_tag","has_union_select","has_comment_pattern",
 ]

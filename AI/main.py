@@ -1,4 +1,25 @@
 """
+
+FastAPI Server for Real-Time Web Attack Detection (Ultimate Ensemble v3.0.0)
+
+■ 파이프라인 통신 규격:
+  - Spring → FastAPI (Request):
+    * HTTP 요청 기본 정보: method, url_path, query_params, body_content, user_agent
+    * 메타데이터 정보: ip_address, timestamp
+    * 내부 파이프라인: 수신된 데이터를 바탕으로 보안 특화 피처 총 23개를 정밀 추출하여 앙상블 모델에 입력
+  
+  - FastAPI → Spring (Response):
+    * threat_score (float): 4대장 앙상블 모델(RandomForest, ExtraTrees, XGBoost, HistGradientBoosting)의 
+                           황금 가중치(9:9:6:2)를 반영하여 산출한 최종 공격 확률 지수 (0.0 ~ 1.0)
+    * ip_address (str): 위협 점수가 최적 임계값(0.6321) 이상일 경우 실제 차단 대상 IP 반환,
+                        정상 요청(안전)일 경우 "0.0.0.0" 반환
+    * reason (str): 탐지된 공격 유형 및 사유 상세 분석 텍스트 (예: URL 공격 키워드, SQL 패턴, XSS 패턴 등),
+                    정상 요청일 경우 "-" 반환
+    * 예외 처리: 모델 파일(model_bundle_ultimate.pkl)이 누락되거나 로딩 실패 시 HTTP 503 Service Unavailable 반환
+
+■ 실행 전제 조건:
+  - weight_optimizer.py를 먼저 실행하여 AI/model_bundle_ultimate.pkl 파일을 생성해야 서버가 정상 기동됩니다.
+
 FastAPI server for the web-attack detection ensemble model.
 
 Run weight_optimizer.py first to create AI/model_bundle_ultimate.pkl.
@@ -13,52 +34,47 @@ import joblib
 import pandas as pd
 from pydantic import BaseModel
 
+# ─────────────────────────────────────────────────────────
+# Kafka 설정 부분
+import json
+import threading
+import time
+from kafka import KafkaConsumer, KafkaProducer
+
+kafka_stop_event = threading.Event()
+kafka_consumer = None
+kafka_producer = None
+
+# AI 서버 로컬 실행 -> localhost:9092 (현재)
+# AI 서버 Docker 실행 -> kafka:29092 (AI 서버도 Docker 컨테이너에 올릴 시 이걸로 변경할 수도 있음)
+KAFKA_BOOTSTRAP_SERVERS = "localhost:9092"
+AI_REQUEST_TOPIC = "ai-request-topic"
+AI_RESULT_TOPIC = "ai-result-topic"
+AI_CONSUMER_GROUP = "ai-service-group"
+# ─────────────────────────────────────────────────────────
 
 BASE_DIR = Path(__file__).resolve().parent
 # 1. 최종 글로벌 최적화 번들 파일명 적용 완료!
 BUNDLE_PATH = BASE_DIR / "model_bundle_ultimate.pkl"
 
 ATTACK_KEYWORDS = [
-    "select",
-    "insert",
-    "update",
-    "delete",
-    "drop",
-    "union",
-    "exec",
-    "script",
-    "alert",
-    "../",
+    "select",   "insert",   "update",   "delete",   "drop",
+    "union",    "exec",    "script",    "alert",    "../",
 ]
 SQL_KEYWORDS = [
-    "select",
-    "insert",
-    "update",
-    "delete",
-    "drop",
-    "union",
-    "where",
-    "from",
-    "exec",
-    "sleep",
-    "benchmark",
+    "select",    "insert",    "update",    "delete",    "drop",
+    "union",    "where",    "from",    "exec",    "sleep",    "benchmark",
 ]
 XSS_KEYWORDS = [
-    "<script",
-    "script",
-    "alert",
-    "onerror",
-    "onload",
-    "javascript:",
-    "<img",
-    "<svg",
+    "<script",    "script",    "alert",    "onerror",
+    "onload",    "javascript:",    "<img",    "<svg",
 ]
 PATH_TRAVERSAL_PATTERNS = ["../", "..\\", "%2e%2e", "etc/passwd", "boot.ini"]
 SPECIAL_CHARS = ["'", '"', "<", ">", "--", ";", "%", "(", ")", "="]
 
 app = FastAPI(
-    title="Security Threat Detection API",
-    description="Detects anomalous HTTP requests with an ensemble ML model.",
+    title="보안 위협 탐지 API",
+    description="Spring 서버로부터 HTTP 요청 데이터를 받아 위협 여부를 판별합니다.",
     version="3.0.0",
 )
 
@@ -80,6 +96,7 @@ optimized_weights = None
 
 
 class HttpRequest(BaseModel):
+    log_id: int | None = None       # 추가된 데이터 컬럼 (Spring <-> Kafka <-> AI Server 통신을 위해 필요함)
     method: str
     url_path: str
     query_params: str = ""
@@ -90,6 +107,7 @@ class HttpRequest(BaseModel):
 
 
 class ThreatResponse(BaseModel):
+    log_id: int | None = None  # 추가된 데이터 컬럼 (Spring <-> Kafka <-> AI Server 통신을 위해 필요함)
     threat_score: float   # 공격일 확률 그대로 (0.0 ~ 1.0)
     ip_address:   str     # 공격이면 실제 IP, 정상이면 "0.0.0.0"
     reason:       str     # 왜 위협인지 (정상이면 "-")
@@ -144,20 +162,20 @@ def build_feature_row(req: HttpRequest) -> dict[str, object]:
     return {
         "method": method,
         "user_agent": user_agent,
-        "url_path": url_path,
-        "file_extension": file_extension,
-        "url_len": url_len,
-        "query_len": query_len,
+        #"url_path": url_path,
+        #"file_extension": file_extension,
+        #"url_len": url_len,
+        #"query_len": query_len,
         "body_len": body_len,
-        "total_len": total_len,
-        "path_depth": path_depth,
-        "param_count": param_count,
+        #"total_len": total_len,
+        #"path_depth": path_depth,
+        #"param_count": param_count,
         "special_char_count": special_char_count,
         "special_char_ratio": safe_ratio(special_char_count, total_len),
-        "encoded_char_count": encoded_char_count,
+        #"encoded_char_count": encoded_char_count,
         "digit_ratio": safe_ratio(digit_count, total_len),
         "alpha_ratio": safe_ratio(alpha_count, total_len),
-        "has_keywords_query": has_any(decoded_query, ATTACK_KEYWORDS),
+        #"has_keywords_query": has_any(decoded_query, ATTACK_KEYWORDS),
         "has_keywords_body": has_any(decoded_body, ATTACK_KEYWORDS),
         "sql_keyword_count": count_matches(combined, SQL_KEYWORDS),
         "xss_keyword_count": count_matches(combined, XSS_KEYWORDS),
@@ -251,6 +269,14 @@ def load_model() -> None:
     print(f"Loaded Ultimate model bundle: {BUNDLE_PATH}")
     print(f"Applied Weights: {optimized_weights}")
 
+    # ─────────────────────────────────────────────────────────
+    # Kafka worker thread
+    # -> FastAPI 서버가 켜지면, Kafka consumer도 백그라운드에서 같이 켜짐.
+    thread = threading.Thread(target=kafka_worker,daemon=True)
+    thread.start()
+    print("[Kafka AI] background worker started")
+    # ─────────────────────────────────────────────────────────
+
 
 @app.get("/")
 def root():
@@ -289,6 +315,7 @@ def predict(request: HttpRequest):
     row = build_feature_row(request)
 
     return ThreatResponse(
+        log_id       = req.log_id,  # 추가된 부분 (Spring <-> Kafka <-> AI Server 통신을 위해 필요함)
         threat_score = round(probability, 4),
         ip_address   = request.ip_address if is_attack else "0.0.0.0",
         reason       = get_attack_reason(probability, row),
@@ -324,3 +351,109 @@ def predict_batch(requests: list[HttpRequest]):
         )
 
     return {"total": len(results), "results": results}
+
+# ─────────────────────────────────────────────────────────
+# Kafka에서 받은 JSON dict를 HttpRequestData로 검증합고, 예측한 다음 dict로 바꿔 반환합니다.
+# 즉, Kafka 메시지 하나를 처리하는 최소 단위.
+def handle_kafka_message(message: dict) -> dict:
+    request = HttpRequestData(**message)
+    result = run_predict(request)
+    return result.dict()
+# ─────────────────────────────────────────────────────────
+
+@app.on_event("shutdown")
+def stop_kafka_worker():
+    kafka_stop_event.set()
+    if kafka_consumer is not None:
+        try:
+            kafka_consumer.close()
+        except Exception:
+            pass
+    if kafka_producer is not None:
+        try:
+            kafka_producer.close()
+        except Exception:
+            pass
+    print("[Kafka AI] background worker stopping")
+
+def kafka_worker():
+    global kafka_consumer, kafka_producer
+
+    while model is None and not kafka_stop_event.is_set():
+        print("[Kafka AI] 모델 로딩 대기 중 ...")
+        time.sleep(1)
+
+    while not kafka_stop_event.is_set():
+        try:
+            # 1) Kafka Consumer 생성
+            kafka_consumer = KafkaConsumer(
+                AI_REQUEST_TOPIC,
+                bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
+                group_id=AI_CONSUMER_GROUP,
+                auto_offset_reset="earliest",
+                enable_auto_commit=True,
+                value_deserializer=lambda v: json.loads(v.decode("utf-8")),
+            )
+            # 2) Kafka Producer 생성
+            kafka_producer = KafkaProducer(
+                bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
+                value_serializer=lambda v: json.dumps(v, ensure_ascii=False).encode("utf-8"),
+            )
+
+            print(f"[Kafka AI] consume start: {AI_REQUEST_TOPIC}")
+
+            # 3) 메시지를 하나씩 처리
+            for record in kafka_consumer:
+                if kafka_stop_event.is_set():
+                    break
+
+                try:
+                    # ai-request-topic 메시지 수신
+                    # -> 예측
+                    # -> ai-result-topic으로 결과 전송
+                    request_message = record.value  
+                    result_message = handle_kafka_message(request_message)
+
+                    kafka_producer.send(
+                        AI_RESULT_TOPIC,
+                        key=str(result_message.get("log_id", "")).encode("utf-8"),
+                        value=result_message,
+                    )
+                    kafka_producer.flush()
+
+                    print(
+                        f"[Kafka AI] result sent. "
+                        f"log_id={result_message.get('log_id')} "
+                        f"score={result_message.get('threat_score')}"
+                    )
+                except Exception as e:
+                    print(f"[Kafka AI Error] message 처리 실패: {e}")
+
+        except Exception as e:
+            print(f"[Kafka AI Error] Kafka worker exception: {e}")
+
+        finally:
+            if kafka_consumer is not None:
+                try:
+                    kafka_consumer.close()
+                except Exception:
+                    pass
+                kafka_consumer = None
+            if kafka_producer is not None:
+                try:
+                    kafka_producer.close()
+                except Exception:
+                    pass
+                kafka_producer = None
+
+        if kafka_stop_event.is_set():
+                break
+        
+        time.sleep(2)
+
+
+# ─────────────────────────────────────────────────────────
+
+# ─────────────────────────────────────────────────────────
+# API 엔드포인트
+# ─────────────────────────────────────────────────────────
