@@ -4,7 +4,10 @@ import com.example.security_log_system.dto.AiRequestDto;
 import com.example.security_log_system.kafka.AiRequestProducer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.kafka.core.KafkaTemplate;
 
+import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -24,11 +28,23 @@ public class AiRequestProducerTest {
     @Mock
     private ObjectMapper objectMapper;
 
-    @InjectMocks
-    private AiRequestProducer Producer;
+    private MeterRegistry meterRegistry;
+
+    private AiRequestProducer producer;
+
+    @BeforeEach
+    void setUp(){
+        meterRegistry = new SimpleMeterRegistry();
+
+        producer = new AiRequestProducer(
+                kafkaTemplate,
+                objectMapper,
+                meterRegistry
+        );
+    }
 
     @Test
-    @DisplayName("1.AI 요청 DTO를 JSON으로 변환하여 Kafka로 전송한다")
+    @DisplayName("AI 요청 DTO를 JSON으로 변환하여 Kafka로 전송하고 성공 지표를 기록한다")
     void sendAnalysisRequest_thenSendJsonMessage() throws Exception {
 
         // given
@@ -46,7 +62,7 @@ public class AiRequestProducerTest {
         when(objectMapper.writeValueAsString(request)).thenReturn(message);
 
         // when
-        Producer.sendAnalysisRequest(request);
+        producer.sendAnalysisRequest(request);
 
         // then
         verify(objectMapper).writeValueAsString(request);
@@ -56,10 +72,21 @@ public class AiRequestProducerTest {
                 "1",
                 message
         );
+
+        assertThat(meterRegistry.counter("security.ai.request.produced").count())
+                .isEqualTo(1.0);
+        assertThat(meterRegistry.find("security.ai.request.produce.failures").counter())
+                .isNull();
+        assertThat(meterRegistry.timer(
+                "security.ai.request.produce.duration",
+                "result",
+                "success"
+        ).count()).isEqualTo(1);
+
     }
 
     @Test
-    @DisplayName("2.JSON 직렬화에 실패하면 RuntimeException을 발생시킨다")
+    @DisplayName("JSON 직렬화에 실패하면 RuntimeException이 발생하고 실패 지표를 기록한다.")
     void sendAnalysisRequest_whenSerializationFails_thenThrowsException() throws  Exception{
 
         // given
@@ -73,14 +100,24 @@ public class AiRequestProducerTest {
                         "Serialization failed") {});
 
         // when & then
-        Assertions.assertThatThrownBy(
-                () -> Producer.sendAnalysisRequest(request)
+        assertThatThrownBy(
+                () -> producer.sendAnalysisRequest(request)
         )
                 .isInstanceOf(RuntimeException.class)
                 .hasMessage("AI analysis request serialization failed.")
                 .hasCauseInstanceOf(JsonProcessingException.class);
 
         verifyNoInteractions(kafkaTemplate);
+
+        assertThat(meterRegistry.counter("security.ai.request.produce.failures").count())
+                .isEqualTo(1.0);
+        assertThat(meterRegistry.find("security.ai.request.produced").counter())
+                .isNull();
+        assertThat(meterRegistry.timer(
+                "security.ai.request.produce.duration",
+                "result",
+                "failure"
+        ).count()).isEqualTo(1);
     }
 }
 
