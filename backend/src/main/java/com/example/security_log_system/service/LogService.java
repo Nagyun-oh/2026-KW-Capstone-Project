@@ -2,9 +2,11 @@ package com.example.security_log_system.service;
 
 import com.example.security_log_system.dto.AiRequestDto;
 import com.example.security_log_system.dto.LogResponseDto;
+import com.example.security_log_system.dto.LogSearchCondition;
 import com.example.security_log_system.entity.LogEntry;
 import com.example.security_log_system.kafka.AiRequestProducer;
 import com.example.security_log_system.repository.LogRepository;
+import com.example.security_log_system.repository.LogSpecification;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,15 +32,16 @@ public class LogService {
 
     // 전체 로그 조회
     @Transactional(readOnly = true)
-    public Page<LogResponseDto> getAllLogs(Pageable pageable) {
+    public Page<LogResponseDto> getLogs(Pageable pageable) {
         return logRepository.findAll(pageable)
                 .map(LogResponseDto::from);
     }
 
-    // ID로 로그 조회
+    // 검색
     @Transactional(readOnly = true)
-    public Page<LogResponseDto> getLogByIp(String ipAddress, Pageable pageable){
-        return logRepository.findByIpAddress(ipAddress,pageable)
+    public Page<LogResponseDto> getLogs(LogSearchCondition condition, Pageable pageable){
+        return logRepository
+                .findAll(LogSpecification.search(condition),pageable)
                 .map(LogResponseDto::from);
     }
 

@@ -1,7 +1,7 @@
 package com.example.security_log_system.service;
 
 
-import com.example.security_log_system.dto.LoginRequest;
+import com.example.security_log_system.dto.LogRequestDto;
 import com.example.security_log_system.entity.AdminUser;
 import com.example.security_log_system.repository.AdminUserRepository;
 import com.example.security_log_system.security.JwtUtil;
@@ -45,7 +45,7 @@ public class AuthServiceTest {
     @Test
     @DisplayName("유효한 로그인 정보 입력 시 JWT 토큰을 반환한다")
     void login_whenValidCredentials_thenReturnToken() {
-        LoginRequest request = loginRequest("admin","1234");
+        LogRequestDto request = loginRequest("admin","1234");
 
         AdminUser user = AdminUser.builder()
                 .username("admin")
@@ -69,7 +69,7 @@ public class AuthServiceTest {
     @Test
     @DisplayName("존재하지 않는 사용자로 로그인 시 빈 Optional을 반환하고 인증을 중단한다")
     void login_whenUserNotFound_thenReurnEmpty() {
-        LoginRequest request = loginRequest("unknown","1234");
+        LogRequestDto request = loginRequest("unknown","1234");
 
         when(adminUserRepository.findByUsername("unknown")).thenReturn(Optional.empty());
 
@@ -84,7 +84,7 @@ public class AuthServiceTest {
     @Test
     @DisplayName("로그인 시 비밀번호가 일치하지 않으면 빈 Optional을 반환하고 JWT를 생성하지 않는다")
     void login_whenPasswordMismatch_thenReturnEmpty(){
-        LoginRequest request = loginRequest("admin","wrong-password");
+        LogRequestDto request = loginRequest("admin","wrong-password");
 
         AdminUser user = AdminUser.builder()
                 .username("admin")
@@ -107,7 +107,7 @@ public class AuthServiceTest {
     @Test
     @DisplayName("회원가입시 사용자 이름이 중복되지 않으면 비밀번호를 암호화하여 관리자를 저장하고 true를 반환한다")
     void registerAdmin_whenUsernameNotExists_thenSaveUserAndReturnTrue(){
-        LoginRequest request = loginRequest("admin","1234");
+        LogRequestDto request = loginRequest("admin","1234");
 
         when(adminUserRepository.findByUsername("admin")).thenReturn(Optional.empty());
         when(passwordEncoder.encode("1234")).thenReturn("encoded-password");
@@ -128,7 +128,7 @@ public class AuthServiceTest {
     @Test
     @DisplayName("회원가입시 사용자 이름이 이미 존재하면 관리자를 저장하지 않고 false를 반환한다")
     void registerAdmin_whenUsernameExists_thenReturnFalse() {
-        LoginRequest request = loginRequest("admin","1234");
+        LogRequestDto request = loginRequest("admin","1234");
 
         AdminUser existingUser = AdminUser.builder()
                 .username("admin")
@@ -148,8 +148,8 @@ public class AuthServiceTest {
 
     }
 
-    private LoginRequest loginRequest(String username, String password) {
-        LoginRequest request = new LoginRequest();
+    private LogRequestDto loginRequest(String username, String password) {
+        LogRequestDto request = new LogRequestDto();
         ReflectionTestUtils.setField(request, "username", username);
         ReflectionTestUtils.setField(request, "password", password);
         return request;

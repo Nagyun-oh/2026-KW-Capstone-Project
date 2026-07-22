@@ -1,6 +1,6 @@
 package com.example.security_log_system.service;
 
-import com.example.security_log_system.dto.LoginRequest;
+import com.example.security_log_system.dto.LogRequestDto;
 import com.example.security_log_system.entity.AdminUser;
 import com.example.security_log_system.repository.AdminUserRepository;
 import com.example.security_log_system.security.JwtUtil;
@@ -23,7 +23,7 @@ public class AuthService {
      실패하면 Optional.empty() 반환.
     * */
     @Transactional(readOnly = true)
-    public Optional<String> login(LoginRequest request){
+    public Optional<String> login(LogRequestDto request){
         return adminUserRepository.findByUsername(request.getUsername())
                 .filter(user -> passwordEncoder.matches(request.getPassword(), user.getPassword()))
                 .map(user -> jwtUtil.generateToken(user.getUsername()));
@@ -33,7 +33,7 @@ public class AuthService {
       회원가입 성공하면 true, 중복이면 false
     * */
     @Transactional
-    public boolean registerAdmin(LoginRequest request){
+    public boolean registerAdmin(LogRequestDto request){
         if(adminUserRepository.findByUsername(request.getUsername()).isPresent()){
             return false;
         }

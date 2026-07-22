@@ -1,15 +1,10 @@
 package com.example.security_log_system.controller;
 
-import com.example.security_log_system.dto.LoginRequest;
-import com.example.security_log_system.entity.AdminUser;
-import com.example.security_log_system.repository.AdminUserRepository;
-import com.example.security_log_system.security.JwtUtil;
+import com.example.security_log_system.dto.LogRequestDto;
 import com.example.security_log_system.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.apache.coyote.Response;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -33,7 +28,7 @@ public class AuthController {
         → 실패하면 401 응답
     * */
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request){
+    public ResponseEntity<?> login(@Valid @RequestBody LogRequestDto request){
        return authService.login(request)
                .<ResponseEntity<?>>map(token -> ResponseEntity.ok(Map.of("token",token)))
                .orElseGet(()-> ResponseEntity.status(401).body("Invalid username or password."));
@@ -42,7 +37,7 @@ public class AuthController {
     // 회원가입 API (테스트용)
     /* POST api/v1/auth/register */
     @PostMapping("/register")
-    public ResponseEntity<?> register(@Valid @RequestBody LoginRequest request){
+    public ResponseEntity<?> register(@Valid @RequestBody LogRequestDto request){
         if(!authService.registerAdmin(request)){
             return ResponseEntity.badRequest().body("Username already exists.");
         }
