@@ -1,7 +1,10 @@
 package com.example.security_log_system.controller;
 
+import com.example.security_log_system.dto.BlacklistResponseDto;
+import com.example.security_log_system.dto.BlacklistSearchCondition;
 import com.example.security_log_system.exception.GlobalExceptionHandler;
 import com.example.security_log_system.service.BlacklistService;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -9,13 +12,21 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.*;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -177,10 +188,68 @@ public class BlacklistControllerTest {
                         .value(expectedMessage));
         verifyNoInteractions(blacklistService);
     }
+
+    @Test
+    @DisplayName("블랙리스트 검색 조건과 페이지 정보를 Service에 전달한다")
+    void getBlacklists_whenConditionIsValid_thenReturnPage() throws Exception {
+        Pageable pageable= PageRequest.of(
+                0,20,
+                Sort.by(Sort.Direction.DESC,"createdAt")
+        );
+
+        BlacklistResponseDto blacklistResponseDto = BlacklistResponseDto.builder()
+                .id(1L)
+                .ipAddress("192.168.0.10")
+                .reason("Repeated attack")
+                .dangerLevel(4)
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        Page<BlacklistResponseDto> result =
+                new PageImpl<>(List.of(blacklistResponseDto),pageable,1);
+
+        when(blacklistService.getBlacklists(
+                any(BlacklistSearchCondition.class),
+                eq(pageable)
+        )).thenReturn(result);
+
+        mockMvc.perform(get("/api/v1/blacklist")
+                .param("ip","192.168.0.10")
+                .param("dangerLevel","4")
+                .param("page","0")
+                .param("size","20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].ipAddress")
+                        .value("192.168.0.10"))
+                .andExpect(jsonPath("$.content[0].dangerLevel").value(4));
+
+        ArgumentCaptor<BlacklistSearchCondition> captor =
+                ArgumentCaptor.forClass(BlacklistSearchCondition.class);
+
+        verify(blacklistService).getBlacklists(captor.capture(),eq(pageable));
+
+        assertThat(captor.getValue().getIp()).isEqualTo("192.168.0.10");
+        assertThat(captor.getValue().getDangerLevel()).isEqualTo(4);
+
+    }
+
+    @Test
+    @DisplayName("블랙리스트 조회시 위험레벨이 유효하지 않으면 400 Bad Request를 반환한다.")
+    void getBlacklists_whenDangerLevelIsInvalid_thenReturnBadRequest() throws Exception{
+        mockMvc.perform(get("/api/v1/blacklist")
+                .param("dangerLevel","6"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.dangerLevel")
+                        .value("Danger level must not exceed 5."));
+
+        verifyNoInteractions(blacklistService);
+    }
+
 }
 
-/*
 
+
+/*
 유효한 IP:
     MockMvc 요청
         → JSON을 BlacklistRequest로 변환
@@ -197,4 +266,5 @@ public class BlacklistControllerTest {
         → 400 Bad Request
         → Service 호출 안 됨
 
-* */
+
+*/

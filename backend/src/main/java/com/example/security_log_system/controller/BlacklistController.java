@@ -2,6 +2,7 @@ package com.example.security_log_system.controller;
 
 import com.example.security_log_system.dto.BlacklistRequestDto;
 import com.example.security_log_system.dto.BlacklistResponseDto;
+import com.example.security_log_system.dto.BlacklistSearchCondition;
 import com.example.security_log_system.service.BlacklistService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -23,6 +24,7 @@ public class BlacklistController {
     // GET (createdAt 기준 최신순으로 20개씩 반환)
     @GetMapping
     public ResponseEntity<Page<BlacklistResponseDto>>getBlackLists(
+            @Valid @ModelAttribute BlacklistSearchCondition condition,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ){
@@ -32,7 +34,7 @@ public class BlacklistController {
                 Sort.by(Sort.Direction.DESC,"createdAt")
         );
 
-        return ResponseEntity.ok(blacklistService.getAllBlacklists(pageable));
+        return ResponseEntity.ok(blacklistService.getBlacklists(condition,pageable));
     }
 
     // POST

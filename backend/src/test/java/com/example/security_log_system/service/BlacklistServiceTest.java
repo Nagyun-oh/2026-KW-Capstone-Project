@@ -1,6 +1,7 @@
 package com.example.security_log_system.service;
 
 import com.example.security_log_system.dto.BlacklistResponseDto;
+import com.example.security_log_system.dto.BlacklistSearchCondition;
 import com.example.security_log_system.entity.IpBlacklist;
 import com.example.security_log_system.repository.BlacklistRepository;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -15,6 +16,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -40,10 +42,14 @@ public class BlacklistServiceTest {
     }
 
     @Test
-    @DisplayName("1. 전체 블랙리스트 조회 시 Entity를 DTO로 변환한다.")
+    @DisplayName("검색 조건으로 블랙리스트를 조회하고 Entity Page를 DTO Page로 변환한다")
     void getAllBlacklists_thenReturnDtoPage(){
 
         // given
+        BlacklistSearchCondition condition = new BlacklistSearchCondition();
+        condition.setIp("192.168.0.10");
+        condition.setDangerLevel(4);
+
         Pageable pageable = PageRequest.of(0,20);
 
         IpBlacklist blacklist = IpBlacklist.builder()
@@ -57,21 +63,28 @@ public class BlacklistServiceTest {
         Page<IpBlacklist> page = new PageImpl<>(List.of(blacklist),pageable,1);
 
         // when
-        when(blacklistRepository.findAll(pageable)).thenReturn(page);
+        when(blacklistRepository.findAll(
+                any(Specification.class),
+                eq(pageable)
+        )).thenReturn(page);
 
-        Page<BlacklistResponseDto> result = blacklistService.getAllBlacklists(pageable);
+        Page<BlacklistResponseDto> result = blacklistService.getBlacklists(condition,pageable);
 
         // then
         assertThat(result.getTotalElements()).isEqualTo(1);
         assertThat(result.getContent().get(0).getIpAddress()).isEqualTo("192.168.0.10");
         assertThat(result.getContent().get(0).getReason()).isEqualTo("Repeated Attack");
         assertThat(result.getContent().get(0).getDangerLevel()).isEqualTo(4);
-        verify(blacklistRepository).findAll(pageable);
+
+        verify(blacklistRepository).findAll(
+                any(Specification.class),
+                eq(pageable)
+        );
 
     }
 
     @Test
-    @DisplayName("2. 새 IP 등록 성공 시 save 호출 후 true 반환")
+    @DisplayName("새 IP 등록 성공 시 save 호출 후 true 반환")
     void addToBlacklist_whenIpNotExists_thenSaveAndReturnTrue(){
 
         // when
@@ -101,7 +114,7 @@ public class BlacklistServiceTest {
     }
 
     @Test
-    @DisplayName("3. 중복 IP 등록 시 save 하지 않고 false 반환")
+    @DisplayName("중복 IP 등록 시 save 하지 않고 false 반환")
     void addToBlacklist_whenIpAlreadyExists_thenReturnFalse(){
 
         // given
@@ -126,7 +139,7 @@ public class BlacklistServiceTest {
     }
 
     @Test
-    @DisplayName("4. 삭제 대상이 존재하면 deleteById 호출 후 true 반환")
+    @DisplayName("삭제 대상이 존재하면 deleteById 호출 후 true 반환")
     void deleteBlacklist_whenIdExists_thenDeleteAndReturnTrue(){
 
         // when
@@ -141,7 +154,7 @@ public class BlacklistServiceTest {
     }
 
     @Test
-    @DisplayName("5. 삭제 대상이 없으면 deleteById 호출하지 않고 false 반환")
+    @DisplayName("삭제 대상이 없으면 deleteById 호출하지 않고 false 반환")
     void deleteBlacklist_whenIdNotExists_thenReturnFalse(){
 
         // when
@@ -156,7 +169,7 @@ public class BlacklistServiceTest {
     }
 
     @Test
-    @DisplayName("6. 블랙리스트 DB에 등록되어있으면, True를 반환한다.")
+    @DisplayName("블랙리스트 DB에 등록되어있으면, True를 반환한다.")
     void isBlocked_whenIpExists_thenReturnTrue(){
 
         // given
@@ -174,7 +187,7 @@ public class BlacklistServiceTest {
     }
 
     @Test
-    @DisplayName("7. 블랙리스트 DB에 등록되어있지 않으면, false를 반환한다.")
+    @DisplayName("블랙리스트 DB에 등록되어있지 않으면, false를 반환한다.")
     void isBlocked_whenIpNotExists_thenReturnFalse(){
 
         // when
@@ -191,8 +204,8 @@ public class BlacklistServiceTest {
 }
 
 
-/*
 
+/*
 테스트:
     1. 전체 블랙리스트 조회 시 Entity를 DTO로 변환한다.
     2. 새 IP 등록 성공 시 save 호출 후 true 반환
@@ -200,4 +213,7 @@ public class BlacklistServiceTest {
     4. 삭제 대상이 존재하면 deleteById 호출 후 true 반환
     5. 삭제 대상이 없으면 deleteById 호출하지 않고 false 반환
     6. isBlocked는 IP 존재 여부를 boolean으로 반환
-* */
+*/
+
+
+

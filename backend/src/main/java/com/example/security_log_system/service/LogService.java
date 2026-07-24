@@ -30,13 +30,6 @@ public class LogService {
     private final BlacklistService blacklistService;
     private final AiRequestProducer aiRequestProducer;
 
-    // 전체 로그 조회
-    @Transactional(readOnly = true)
-    public Page<LogResponseDto> getLogs(Pageable pageable) {
-        return logRepository.findAll(pageable)
-                .map(LogResponseDto::from);
-    }
-
     // 검색
     @Transactional(readOnly = true)
     public Page<LogResponseDto> getLogs(LogSearchCondition condition, Pageable pageable){
