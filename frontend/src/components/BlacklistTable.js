@@ -1,9 +1,55 @@
-import React from 'react';
+import React,{useState} from 'react';
 
-function BlacklistTable({ blacklists,pageInfo,onPageChange }) {
+function BlacklistTable({ blacklists,pageInfo,onPageChange,onSearch,onReset }) {
+  const [form,setForm] = useState({
+    ip: "",
+    dangerLevel: "",
+  });
+
+  const handleChange = event => {
+    const {name, value} = event.target;
+
+    setForm(previous => ({
+      ...previous,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = event => {
+    event.preventDefault();
+    onSearch(form);
+  };
+
+  const handleReset = () =>{
+    const emptyForm = {ip: "", dangerLevel: ""};
+    setForm(emptyForm);
+    onReset();
+  };
   return (
     <section style={{ backgroundColor: 'white', padding: '15px', borderRadius: '10px', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
-      <h2 style={{ color: '#333' }}>🚫 현재 차단된 IP ({pageInfo.totalElements})</h2>
+      <form onSubmit={handleSubmit}>
+        <input
+          name="ip"
+          value={form.ip}
+          onChange={handleChange}
+          placeholder="IP address"
+        />
+
+        <select
+          name="dangerLevel"
+          value={form.dangerLevel}
+          onChange={handleChange}
+        >
+          <option value="">All danger levels</option>
+          {[1, 2, 3, 4, 5].map(level => (
+            <option key={level} value={level}>{level}</option>
+          ))}
+        </select>
+
+        <button type="submit">검색</button>
+        <button type="button" onClick={handleReset}>초기화</button>
+    </form>
+      <h2 style={{ color: '#333' }}>🚫 차단 IP ({pageInfo.totalElements})</h2>
       <table border="1" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead style={{ backgroundColor: '#f8f9fa' }}>
           <tr>
