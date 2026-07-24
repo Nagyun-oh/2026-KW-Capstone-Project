@@ -1,18 +1,15 @@
 package com.example.security_log_system.controller;
 
-import com.example.security_log_system.dto.BlacklistRequest;
+import com.example.security_log_system.dto.BlacklistRequestDto;
 import com.example.security_log_system.dto.BlacklistResponseDto;
-import com.example.security_log_system.entity.IpBlacklist;
 import com.example.security_log_system.service.BlacklistService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
 
 @Tag(name = "BlackList API", description = "차단 데이터 조회 및 관리 API")
 @Validated
@@ -40,7 +37,7 @@ public class BlacklistController {
 
     // POST
     @PostMapping
-    public ResponseEntity<String> addBlackList(@Valid @RequestBody BlacklistRequest request){
+    public ResponseEntity<String> addBlackList(@Valid @RequestBody BlacklistRequestDto request){
 
         boolean added = blacklistService.addToBlacklist(
                 request.getIpAddress(),

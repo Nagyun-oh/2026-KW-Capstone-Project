@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @NoArgsConstructor
-public class BlacklistRequest {
+public class BlacklistRequestDto {
 
     @NotBlank(message = "Ip address is required.")
     @ValidIpAddress

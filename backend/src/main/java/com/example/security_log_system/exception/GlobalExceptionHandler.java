@@ -1,6 +1,6 @@
 package com.example.security_log_system.exception;
 
-import com.example.security_log_system.dto.ErrorResponse;
+import com.example.security_log_system.dto.ErrorResponseDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -19,7 +19,7 @@ public class GlobalExceptionHandler {
 
     // @RequestBody @Valid DTO 검증 실패
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ErrorResponse> handleValidation(
+    public ResponseEntity<ErrorResponseDto> handleValidation(
             MethodArgumentNotValidException exception
     ) {
         Map<String, String> errors = new LinkedHashMap<>();
@@ -28,7 +28,7 @@ public class GlobalExceptionHandler {
                 .forEach(error ->
                         errors.put(error.getField(),error.getDefaultMessage()));
 
-        ErrorResponse response = new ErrorResponse(
+        ErrorResponseDto response = new ErrorResponseDto(
                 HttpStatus.BAD_REQUEST.value(),
                 "Request validation failed.",
                 errors,
@@ -42,7 +42,7 @@ public class GlobalExceptionHandler {
 
     // @RequestParam, @PathVariable 검증 실패
     @ExceptionHandler(HandlerMethodValidationException.class)
-    public ResponseEntity<ErrorResponse> handleMethodValidation(
+    public ResponseEntity<ErrorResponseDto> handleMethodValidation(
             HandlerMethodValidationException exception
     ) {
         Map<String, String> errors = new LinkedHashMap<>();
@@ -59,7 +59,7 @@ public class GlobalExceptionHandler {
                             ));
                 });
 
-        ErrorResponse response = new ErrorResponse(
+        ErrorResponseDto response = new ErrorResponseDto(
                 HttpStatus.BAD_REQUEST.value(),
                 "Request validation failed.",
                 errors,

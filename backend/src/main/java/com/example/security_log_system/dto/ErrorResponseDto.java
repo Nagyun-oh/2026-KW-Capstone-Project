@@ -5,7 +5,7 @@ import java.util.Map;
 
 // 공통 에러 DTO
 
-public record ErrorResponse(
+public record ErrorResponseDto(
         int status,
         String message,
         Map<String,String> errors,
