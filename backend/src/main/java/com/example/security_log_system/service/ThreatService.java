@@ -9,6 +9,8 @@ import com.example.security_log_system.entity.LogEntry;
 import com.example.security_log_system.repository.BlacklistRepository;
 import com.example.security_log_system.repository.LogRepository;
 import com.example.security_log_system.repository.ThreatRepository;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.aspectj.weaver.ast.Not;
 import org.springframework.data.domain.Page;
@@ -32,7 +34,7 @@ public class ThreatService {
     private final NotificationService notificationService;
 
     private final Map<String, Integer> errorCounter = new ConcurrentHashMap<>();    // IP별 403 에러 횟수 저장 (IP, 횟수)
-    private static final int BLOCK_THRESHOLD = 5;    // 차단 임계치 설정
+    private final MeterRegistry meterRegistry;
 
     @Transactional(readOnly = true)
     public Page<ThreatResponseDto> getAllThreats(Pageable pageable){
@@ -40,8 +42,9 @@ public class ThreatService {
                 .map(ThreatResponseDto::from);
     }
 
+
     /*
-     * API 테스트
+     * API 테스트용
      * */
     public void saveDetectedThreat(ThreatDto threatDto) {
 
@@ -52,9 +55,10 @@ public class ThreatService {
                 .build();
 
         threatRepository.save(threat);
+        incrementThreatDetectedMetric(threat.getSeverity());
         System.out.println("[API 테스트] 새로운 위협이 등록되었습니다: " + threatDto.getThreatType());
 
-        // 2. 위험도가 높으면 자동으로 블랙리스트 등록
+        // 위험도가 높으면 자동으로 블랙리스트 등록
         if (threatDto.getDangerLevel() >= 4) {
             blacklistService.addToBlacklist(threatDto.getClientIp(), " 직접 POST: " + threatDto.getThreatType()
                     , threatDto.getDangerLevel());
@@ -65,6 +69,9 @@ public class ThreatService {
 
     }
 
+    /*
+    * Kafka 테스트용
+    * */
     public void saveAiDetectedThreat(AiResponseDto aiResponse) {
         if (aiResponse.getLogId() ==null){
             throw new IllegalArgumentException("AI response logId is null");
@@ -86,11 +93,20 @@ public class ThreatService {
                 .detectedAt(LocalDateTime.now())
                 .build();
         threatRepository.save(threat);
+        incrementThreatDetectedMetric(threat.getSeverity());
 
         if(aiResponse.getThreatScore() >= 0.8){
             blacklistService.addToBlacklist(aiResponse.getIpAddress(), aiResponse.getReason(), 4);
             notificationService.sendUrgentAlert(aiResponse.getIpAddress(), "AI Detection",4);
         }
+    }
+
+    private void incrementThreatDetectedMetric(String severity){
+        Counter.builder("security.threats.detected")
+                .description("Number of detected security threats")
+                .tag("severity",severity)
+                .register(meterRegistry)
+                .increment();
     }
 
     // 위험도 숫자를 (1~5) 를 "HIGH", "CRITICAL" 등의 문자열로 바꿔주는 편의 메서드

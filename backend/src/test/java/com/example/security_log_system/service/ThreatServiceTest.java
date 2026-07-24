@@ -9,8 +9,11 @@ import com.example.security_log_system.entity.LogEntry;
 import com.example.security_log_system.repository.BlacklistRepository;
 import com.example.security_log_system.repository.LogRepository;
 import com.example.security_log_system.repository.ThreatRepository;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.apache.juli.logging.Log;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -41,16 +44,27 @@ public class ThreatServiceTest {
     private ThreatRepository threatRepository;
 
     @Mock
-    private BlacklistRepository blacklistRepository;
-
-    @Mock
     private BlacklistService blacklistService;
 
     @Mock
     private NotificationService notificationService;
 
-    @InjectMocks
+    private MeterRegistry meterRegistry;
+
     private ThreatService threatService;
+
+    @BeforeEach
+    void setUp(){
+        meterRegistry = new SimpleMeterRegistry();
+
+        threatService = new ThreatService(
+                logRepository,
+                threatRepository,
+                blacklistService,
+                notificationService,
+                meterRegistry
+        );
+    }
 
     @Test
     @DisplayName("1. 전체 위협 조회 시 Entity를 DTO로 변환한다.")
@@ -104,9 +118,16 @@ public class ThreatServiceTest {
         verify(threatRepository).save(captor.capture());
 
         DetectedThreat saved = captor.getValue();
+
         assertThat(saved.getThreatType()).isEqualTo("SQL_INJECTION");
         assertThat(saved.getSeverity()).isEqualTo("HIGH");
         assertThat(saved.getDescription()).isEqualTo("Suspicious query");
+
+        assertThat(meterRegistry.counter(
+                "security.threats.detected",
+                "severity",
+                "HIGH"
+                ).count()).isEqualTo(1.0);
 
         verifyNoInteractions(blacklistService);
         verifyNoInteractions(notificationService);
@@ -129,6 +150,12 @@ public class ThreatServiceTest {
 
         // then
         verify(threatRepository).save(any(DetectedThreat.class));
+
+        assertThat(meterRegistry.counter(
+                "security.threats.detected",
+                "severity",
+                "CRITICAL"
+        ).count()).isEqualTo(1.0);
 
         verify(blacklistService).addToBlacklist(
                 eq("192.168.0.10"),
@@ -174,6 +201,8 @@ public class ThreatServiceTest {
         assertThatThrownBy(() -> threatService.saveAiDetectedThreat(aiResponseDto))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("LogEntry not found");
+        assertThat(meterRegistry.find("security.threats.detected").counter())
+                .isNull();
 
         verify(logRepository).findById(1L);
         verifyNoInteractions(threatRepository);
@@ -207,6 +236,12 @@ public class ThreatServiceTest {
         assertThat(saved.getSeverity()).isEqualTo("CRITICAL");
         assertThat(saved.getDescription()).isEqualTo("AI detected");
         assertThat(saved.getDetectedAt()).isNotNull();
+
+        assertThat(meterRegistry.counter(
+                "security.threats.detected",
+                "severity",
+                "CRITICAL"
+        ).count()).isEqualTo(1.0);
 
         verify(blacklistService).addToBlacklist(
                 "192.168.0.10",
@@ -244,6 +279,13 @@ public class ThreatServiceTest {
 
         // then
         assertThat(saved.getSeverity()).isEqualTo("HIGH");
+
+        assertThat(meterRegistry.counter(
+                "security.threats.detected",
+                "severity",
+                "HIGH"
+        ).count()).isEqualTo(1.0);
+
         verifyNoInteractions(blacklistService);
         verifyNoInteractions(notificationService);
     }
@@ -263,6 +305,9 @@ public class ThreatServiceTest {
         threatService.saveAiDetectedThreat(aiResponseDto);
 
         // then
+        assertThat(meterRegistry.find("security.threats.detected").counter())
+                .isNull();
+
         verify(logRepository).findById(1L);
         verifyNoInteractions(threatRepository);
         verifyNoInteractions(blacklistService);

@@ -3,7 +3,10 @@ package com.example.security_log_system.consumer;
 
 import com.example.security_log_system.kafka.LogKafkaConsumer;
 import com.example.security_log_system.service.LogService;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,12 +28,22 @@ public class LogConsumerTest {
     @Mock
     private LogService logService;
 
-    // 의존성 자동 주입
-    @InjectMocks
     private LogKafkaConsumer logConsumer;
 
+    private MeterRegistry meterRegistry;
+
+    @BeforeEach
+    void setUp(){
+        meterRegistry = new SimpleMeterRegistry();
+
+        logConsumer = new LogKafkaConsumer(
+                logService,
+                meterRegistry
+        );
+    }
+
     @Test
-    @DisplayName("1. Kafka 로그 메시지를 LogService에 전달한다")
+    @DisplayName("정상 로그 메시지를 처리하면 성공 Counter와 처리 시간 Timer가 기록된다.")
     void kafkaMessageReceived_thenCallLogService(){
         // given
         String message = """
@@ -42,10 +55,20 @@ public class LogConsumerTest {
 
         // then
         verify(logService).processRawLog(message);
+
+        assertThat(meterRegistry.counter("security.logs.processed").count())
+                .isEqualTo(1.0);
+        assertThat(meterRegistry.find("security.kafka.consumer.failures").counter())
+                .isNull();
+        assertThat(meterRegistry.timer(
+                "security.log.processing.duration",
+                "result",
+                "success"
+        ).count()).isEqualTo(1);
     }
 
     @Test
-    @DisplayName("2. 로그 처리에 실패해도 Consumer 예외를 외부로 던지지 않는다")
+    @DisplayName("로그 처리 중 예외가 발생하면 실패 Counter와 실패 처리 시간 Timer가 기록된다.")
     void consume_whenLogServiceFails_thenDoNotPropagateException(){
 
         // given
@@ -55,17 +78,35 @@ public class LogConsumerTest {
                 .when(logService)
                 .processRawLog(message);
 
-        // when & then
-        assertThatCode( () -> logConsumer.consume(message))
-                .doesNotThrowAnyException();
+        // when
+        logConsumer.consume(message);
 
+        // then
         verify(logService).processRawLog(message);
+
+        assertThat(meterRegistry.counter("security.kafka.consumer.failures").count())
+                .isEqualTo(1.0);
+        assertThat(meterRegistry.find("security.logs.processed").counter())
+                .isNull();
+
+        assertThat(meterRegistry.timer(
+                "security.log.processing.duration",
+                "result",
+                "failure"
+        ).count()).isEqualTo(1);
     }
 }
 /*
-    Kafka 메시지 수신
-    → LogService.processRawLog() 호출
-    → RuntimeException 발생
-    → LogKafkaConsumer의 catch에서 처리
-    → Consumer 외부에는 예외가 전달되지 않음
+consume(message)
+    → logService.processRawLog(message) 호출
+    → 성공 Counter 1 증가
+    → 실패 Counter는 생성되지 않음
+    → result=success Timer 기록
+
+logService.processRawLog(message)에서 예외 발생
+    → LogKafkaConsumer가 catch
+    → 실패 Counter 1 증가
+    → 성공 Counter는 생성되지 않음
+    → result=failure Timer 기록
+
 * */

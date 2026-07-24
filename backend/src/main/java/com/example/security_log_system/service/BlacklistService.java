@@ -3,6 +3,8 @@ package com.example.security_log_system.service;
 import com.example.security_log_system.dto.BlacklistResponseDto;
 import com.example.security_log_system.entity.IpBlacklist;
 import com.example.security_log_system.repository.BlacklistRepository;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
@@ -15,6 +17,7 @@ import java.time.LocalDateTime;
 @Transactional
 public class BlacklistService {
     private final BlacklistRepository blacklistRepository;
+    private final MeterRegistry meterRegistry;
 
     @Transactional(readOnly = true)
     public Page<BlacklistResponseDto> getAllBlacklists(Pageable pageable){
@@ -37,8 +40,14 @@ public class BlacklistService {
                 .dangerLevel(dangerLevel)
                 .createdAt(LocalDateTime.now())
                 .build();
-
         blacklistRepository.save(blacklist);
+
+        // 등록 성공 시 Counter 증가
+        Counter.builder("security.blacklist.registrations")
+                .description("Number of IP addresses added to blacklist")
+                .register(meterRegistry)
+                .increment();
+
         return true;
     }
 

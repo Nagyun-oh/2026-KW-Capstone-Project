@@ -53,7 +53,13 @@ public class SecurityConfig {
                                 "/swagger-ui/**",           // API 문서 -> 누구나 접근 가능
                                 "/v3/api-docs",
                                 "/v3/api-docs/**",          // API 문서 -> 누구나 접근 가능
-                                "/health"                   // 서버 상태 확인 -> 누구나 접근 가능
+                                "/health",                   // 서버 상태 확인 -> 누구나 접근 가능
+                                // 개발 환경에서 성능 지표 확인을 위해 Actuator endpoint를 허용함.
+                                // 운영 환경에서는 Prometheus 서버 또는 관리자만 접근 가능하도록 제한해야 함.
+                                "/actuator/health",
+                                "/actuator/info",
+                                "/actuator/metrics/**",
+                                "/actuator/prometheus"
                         ).permitAll()                       // 위의 경로들은 토큰 없어도 허용
                         .anyRequest().authenticated()       // 나머지는 토큰 필수
                 )

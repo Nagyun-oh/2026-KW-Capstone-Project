@@ -3,7 +3,10 @@ package com.example.security_log_system.service;
 import com.example.security_log_system.dto.BlacklistResponseDto;
 import com.example.security_log_system.entity.IpBlacklist;
 import com.example.security_log_system.repository.BlacklistRepository;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.assertj.core.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -27,8 +30,14 @@ public class BlacklistServiceTest {
     @Mock
     private BlacklistRepository blacklistRepository;
 
-    @InjectMocks
+    private MeterRegistry meterRegistry = new SimpleMeterRegistry();
+
     private BlacklistService blacklistService;
+
+    @BeforeEach
+    void setUp(){
+        blacklistService = new BlacklistService(blacklistRepository,meterRegistry);
+    }
 
     @Test
     @DisplayName("1. 전체 블랙리스트 조회 시 Entity를 DTO로 변환한다.")
@@ -88,6 +97,7 @@ public class BlacklistServiceTest {
         assertThat(saved.getReason()).isEqualTo("Repeated attack");
         assertThat(saved.getDangerLevel()).isEqualTo(4);
         assertThat(saved.getCreatedAt()).isNotNull();
+        assertThat(meterRegistry.counter("security.blacklist.registrations").count()).isEqualTo(1.0);
     }
 
     @Test

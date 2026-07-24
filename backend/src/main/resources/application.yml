@@ -21,6 +21,21 @@ spring:
       auto-offset-reset: earliest     # 컨슈머가 처음 연결됐을 때, 이전에 쌓여있던 데이터가 있다면 처음부터 다 읽어오겠다는 뜻
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+# Spring Boot Actuator가 어떤 운영/성능 정보를 외부에 보여줄지 정함.
+management:
+  # 웹으로 접근 가능한 Acutator endpoint를 열어주는 설정
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  # HTTP API 요청 지표에 대해 히스토그램 데이터를 만들겠다
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+      # 응답 시간 기준선
+      slo:
+        http.server.requests: 100ms,300ms,1s
 # 이 스프링 프로젝트가 실행될 때 사용하는 포트번호. 웹 브라우저에서 localhost:8080으로 접속하게됨.
 server:
   port: 8080
