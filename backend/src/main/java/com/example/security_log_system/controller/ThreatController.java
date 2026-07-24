@@ -2,6 +2,7 @@ package com.example.security_log_system.controller;
 
 import com.example.security_log_system.dto.ThreatDto;
 import com.example.security_log_system.dto.ThreatResponseDto;
+import com.example.security_log_system.dto.ThreatSearchCondition;
 import com.example.security_log_system.entity.DetectedThreat;
 import com.example.security_log_system.repository.ThreatRepository;
 import com.example.security_log_system.service.ThreatService;
@@ -27,7 +28,8 @@ public class ThreatController {
 
     // 전체 위협 조회
     @GetMapping
-    public ResponseEntity<Page<ThreatResponseDto>> getAllThreats(
+    public ResponseEntity<Page<ThreatResponseDto>> getThreats(
+            @Valid @ModelAttribute ThreatSearchCondition condition,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
     ) {
@@ -37,7 +39,7 @@ public class ThreatController {
                 Sort.by(Sort.Direction.DESC, "detectedAt")
         );
 
-        return ResponseEntity.ok(threatService.getAllThreats(pageable));
+        return ResponseEntity.ok(threatService.getThreats(condition,pageable));
     }
 
     // AI 결과를 HTTP로 직접 수신하는 보조/테스트용 API

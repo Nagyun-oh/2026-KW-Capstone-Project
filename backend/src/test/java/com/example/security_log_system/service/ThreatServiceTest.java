@@ -4,6 +4,7 @@ package com.example.security_log_system.service;
 import com.example.security_log_system.dto.AiResponseDto;
 import com.example.security_log_system.dto.ThreatDto;
 import com.example.security_log_system.dto.ThreatResponseDto;
+import com.example.security_log_system.dto.ThreatSearchCondition;
 import com.example.security_log_system.entity.DetectedThreat;
 import com.example.security_log_system.entity.LogEntry;
 import com.example.security_log_system.repository.BlacklistRepository;
@@ -25,6 +26,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
@@ -67,16 +69,20 @@ public class ThreatServiceTest {
     }
 
     @Test
-    @DisplayName("1. 전체 위협 조회 시 Entity를 DTO로 변환한다.")
+    @DisplayName("검색 조건으로 위협을 조회하고 Entity Page를 DTO Page로 변환한다.")
     void getAllThreats_thenReturnDtoPage(){
 
         // given
+        ThreatSearchCondition condition = new ThreatSearchCondition();
+        condition.setThreatType("SQL injection");
+        condition.setSeverity("CRITICAL");
+
         Pageable pageable = PageRequest.of(0,20);
 
         DetectedThreat threat = DetectedThreat.builder()
                 .id(1L)
-                .threatType("SQL_INJECTION")
-                .severity("HIGH")
+                .threatType("SQL injection")
+                .severity("CRITICAL")
                 .description("Suspicious query")
                 .detectedAt(LocalDateTime.now())
                 .build();
@@ -84,21 +90,27 @@ public class ThreatServiceTest {
         Page<DetectedThreat> page = new PageImpl<>(List.of(threat),pageable,1);
 
         // when
-        when(threatRepository.findAll(pageable)).thenReturn(page);
+        when(threatRepository.findAll(
+                any(Specification.class),
+                eq(pageable)
+        )).thenReturn(page);
 
         // then
-        Page<ThreatResponseDto> result = threatService.getAllThreats(pageable);
+        Page<ThreatResponseDto> result = threatService.getThreats(condition,pageable);
 
         assertThat(result.getTotalElements()).isEqualTo(1);
-        assertThat(result.getContent().get(0).getThreatType()).isEqualTo("SQL_INJECTION");
-        assertThat(result.getContent().get(0).getSeverity()).isEqualTo("HIGH");
+        assertThat(result.getContent().get(0).getThreatType()).isEqualTo("SQL injection");
+        assertThat(result.getContent().get(0).getSeverity()).isEqualTo("CRITICAL");
 
-        verify(threatRepository).findAll(pageable);
+        verify(threatRepository).findAll(
+                any(Specification.class),
+                eq(pageable)
+        );
 
     }
 
     @Test
-    @DisplayName("2. dangerLevel 3이면, Threat만 저장하고 blacklist 등록은 안한다.")
+    @DisplayName("dangerLevel 3이면, Threat만 저장하고 blacklist 등록은 안한다.")
     void saveDetectedThreat_whenDangerLevelIsThree_thenSaveThreatOnly(){
 
         // given
@@ -134,7 +146,7 @@ public class ThreatServiceTest {
     }
 
     @Test
-    @DisplayName("3. dangerLevel 4이상이면, Threat 저장 + blacklist 등록 + 긴급 알림 전송")
+    @DisplayName("dangerLevel 4이상이면, Threat 저장 + blacklist 등록 + 긴급 알림 전송")
     void saveDetectedThreat_whenDangerLevelIsFour_thenSaveThreatAndBlacklist(){
 
         // given
@@ -171,7 +183,7 @@ public class ThreatServiceTest {
     }
 
     @Test
-    @DisplayName("4.AI 응답 logId가 null 이면 예외 발생")
+    @DisplayName("AI 응답 logId가 null 이면 예외 발생")
     void saveAiDetectedThreat_whenLogIdIsNull_thenThrowException(){
 
         // given
@@ -188,7 +200,7 @@ public class ThreatServiceTest {
     }
 
     @Test
-    @DisplayName("5. AI 응답 logId에 해당하는 로그가 없으면 예외 발생")
+    @DisplayName("AI 응답 logId에 해당하는 로그가 없으면 예외 발생")
     void saveAiDetectedThreat_whenLogEntryNotFound_thenThrowException(){
 
         // given
@@ -209,7 +221,7 @@ public class ThreatServiceTest {
     }
 
     @Test
-    @DisplayName(" 6. AI score가 0.8 이상이면 CRITICAL 저장 + blacklist 등록")
+    @DisplayName(" AI score가 0.8 이상이면 CRITICAL 저장 + blacklist 등록")
     void saveAiDetectedThreat_whenCriticalScore_thenSaveAndBlacklist(){
 
         // given
@@ -257,7 +269,7 @@ public class ThreatServiceTest {
     }
 
     @Test
-    @DisplayName("7. AI score가 0.8 미만이면 HIGH 저장 + blacklist 등록 안함")
+    @DisplayName("AI score가 0.8 미만이면 HIGH 저장 + blacklist 등록 안함")
     void saveAiDetectedThreat_whenHighScore_thenSavedWithoutBlacklist(){
 
         // given
@@ -291,7 +303,7 @@ public class ThreatServiceTest {
     }
 
     @Test
-    @DisplayName("8. AI 응답 IP가 0.0.0.0이면 아무 작업도 하지 않는다.")
+    @DisplayName("AI 응답 IP가 0.0.0.0이면 아무 작업도 하지 않는다.")
     void saveAiDetectedThreat_whenIpIsDefault_thenDoNothingAfterLogLookup() {
 
         // given
@@ -344,7 +356,7 @@ public class ThreatServiceTest {
 
 /*
 테스트:
-    1. 전체 위협 조회 시 Entity를 DTO로 변환한다.
+    1. 검색 조건으로 위협을 조회하고 Entity Page를 DTO Page로 변환한다.
     2. dangerLevel 3이면, Threat만 저장하고 blacklist 등록은 안한다.
     3. dangerLevel 4이상이면, Threat 저장 + blacklist 등록 + 긴급 알림 전송
     4. AI 응답 logId가 null 이면 예외 발생
@@ -352,4 +364,7 @@ public class ThreatServiceTest {
     6. AI score가 0.8 이상이면 CRITICAL 저장 + blacklist 등록
     7. AI score가 0.8 미만이면 HIGH 저장 + blacklist 등록 안함
     8. AI 응답 IP가 0.0.0.0이면 아무 작업도 하지 않는다.
-* */
+*/
+
+
+

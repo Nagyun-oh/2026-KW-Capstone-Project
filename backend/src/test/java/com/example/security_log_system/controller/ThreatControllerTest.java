@@ -3,8 +3,10 @@ package com.example.security_log_system.controller;
 
 import com.example.security_log_system.dto.ThreatDto;
 import com.example.security_log_system.dto.ThreatResponseDto;
+import com.example.security_log_system.dto.ThreatSearchCondition;
 import com.example.security_log_system.exception.GlobalExceptionHandler;
 import com.example.security_log_system.service.ThreatService;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -51,10 +53,9 @@ public class ThreatControllerTest {
                 .build();                                           // MockMvc 생성
     }
 
-    // 1. 전체 위협 조회 테스트
     @Test
-    @DisplayName("전체 위협 조회 시 페이지네이션된 위협 정보와 200 OK를 반환한다")
-    void getAllThreats_thenReturnPagedThreats() throws Exception{
+    @DisplayName("위협 검색 조건과 페이지 정보를 Service에 전달한다")
+    void getThreats_whenConditionIsValid_thenReturnPage() throws Exception{
 
         Pageable pageable = PageRequest.of(
                 0,
@@ -74,11 +75,16 @@ public class ThreatControllerTest {
 
         Page<ThreatResponseDto> result = new PageImpl<>(List.of(threat),pageable,1);
 
-        when(threatService.getAllThreats(pageable)).thenReturn(result);
+        when(threatService.getThreats(
+                any(ThreatSearchCondition.class),
+                eq(pageable)))
+                .thenReturn(result);
 
         mockMvc.perform(get("/api/v1/threats")
                         .param("page", "0")
-                        .param("size", "20"))
+                        .param("size", "20")
+                        .param("severity","CRITICAL")
+                        .param("threatType","SQL"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].id").value(1))
                 .andExpect(jsonPath("$.content[0].logId").value(10))
@@ -92,7 +98,12 @@ public class ThreatControllerTest {
                 .andExpect(jsonPath("$.size").value(20))
                 .andExpect(jsonPath("$.number").value(0));
 
-        verify(threatService).getAllThreats(pageable);
+        ArgumentCaptor<ThreatSearchCondition> captor =
+                ArgumentCaptor.forClass(ThreatSearchCondition.class);
+
+        verify(threatService).getThreats(captor.capture(),eq(pageable));
+        assertThat(captor.getValue().getThreatType()).isEqualTo("SQL");
+        assertThat(captor.getValue().getSeverity()).isEqualTo("CRITICAL");
     }
 
     // 2. 정상적인 ThreatDto 요청이 Service까지 전달되는지 검사
@@ -186,6 +197,19 @@ public class ThreatControllerTest {
     }
 
     @Test
+    @DisplayName("심각도가 유효하지 않은 값이면, 400 Bad Request를 반환한다")
+    void getThreats_whenSeverityIsInvalid_thenReturnBadRequest() throws Exception{
+
+        mockMvc.perform(get("/api/v1/threats")
+                .param("severity","UNKNOWN"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errors.severity")
+                        .value("Invalid severity."));
+
+        verifyNoInteractions(threatService);
+    }
+
+    @Test
     @DisplayName("위험도가 1보다 작으면 400 Bad Request를 반환한다")
     void receiveDetect_whenDangerLevelIsLessThanOne_thenReturnBadRequest() throws  Exception{
 
@@ -212,8 +236,7 @@ public class ThreatControllerTest {
 
 }
 
-/*
-    정상 조회:
+ /*   정상 조회:
         MockMvc GET
         → ThreatController
         → mock ThreatService

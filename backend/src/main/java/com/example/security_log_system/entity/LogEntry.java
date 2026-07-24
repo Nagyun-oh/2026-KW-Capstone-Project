@@ -26,7 +26,6 @@ public class LogEntry {
     private String requestUrl;      // 접속 경로
     private int statusCode;         // 200,403 등
 
-
     @Column(columnDefinition = "TEXT")
     private String rawLog;          // 전체 원본 로그
     private LocalDateTime createdAt; // 로그 수신 시간

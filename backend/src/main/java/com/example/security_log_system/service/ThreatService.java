@@ -3,12 +3,14 @@ package com.example.security_log_system.service;
 import com.example.security_log_system.dto.AiResponseDto;
 import com.example.security_log_system.dto.ThreatDto;
 import com.example.security_log_system.dto.ThreatResponseDto;
+import com.example.security_log_system.dto.ThreatSearchCondition;
 import com.example.security_log_system.entity.DetectedThreat;
 import com.example.security_log_system.entity.IpBlacklist;
 import com.example.security_log_system.entity.LogEntry;
 import com.example.security_log_system.repository.BlacklistRepository;
 import com.example.security_log_system.repository.LogRepository;
 import com.example.security_log_system.repository.ThreatRepository;
+import com.example.security_log_system.repository.ThreatSpecification;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
@@ -37,8 +39,8 @@ public class ThreatService {
     private final MeterRegistry meterRegistry;
 
     @Transactional(readOnly = true)
-    public Page<ThreatResponseDto> getAllThreats(Pageable pageable){
-        return threatRepository.findAll(pageable)
+    public Page<ThreatResponseDto> getThreats(ThreatSearchCondition condition, Pageable pageable){
+        return threatRepository.findAll(ThreatSpecification.search(condition),pageable)
                 .map(ThreatResponseDto::from);
     }
 

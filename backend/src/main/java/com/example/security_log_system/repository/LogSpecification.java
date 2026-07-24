@@ -13,7 +13,7 @@ import java.util.List;
 import jakarta.persistence.criteria.Predicate;
 
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
-public class LogSpecification {
+public final class LogSpecification {
 
     public static Specification<LogEntry> search (LogSearchCondition condition){
         return (root,query,builder) -> {

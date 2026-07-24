@@ -1,8 +1,10 @@
 package com.example.security_log_system.service;
 
 import com.example.security_log_system.dto.BlacklistResponseDto;
+import com.example.security_log_system.dto.BlacklistSearchCondition;
 import com.example.security_log_system.entity.IpBlacklist;
 import com.example.security_log_system.repository.BlacklistRepository;
+import com.example.security_log_system.repository.BlacklistSpecification;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
@@ -20,8 +22,8 @@ public class BlacklistService {
     private final MeterRegistry meterRegistry;
 
     @Transactional(readOnly = true)
-    public Page<BlacklistResponseDto> getAllBlacklists(Pageable pageable){
-        return blacklistRepository.findAll(pageable)
+    public Page<BlacklistResponseDto> getBlacklists(BlacklistSearchCondition condition, Pageable pageable){
+        return blacklistRepository.findAll(BlacklistSpecification.search(condition),pageable)
                 .map(BlacklistResponseDto::from);
     }
 
