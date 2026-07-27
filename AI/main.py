@@ -213,7 +213,7 @@ def get_attack_reason(probability: float, row: dict) -> str:
 
     reasons = []
 
-    if row["has_keywords_query"]:
+    if row.get("has_keywords_query"):
         reasons.append("URL 공격 키워드")
     if row["has_keywords_body"]:
         reasons.append("Body 공격 키워드")
@@ -294,13 +294,12 @@ def health_check():
     }
 
 
-@app.post("/predict", response_model=ThreatResponse)
-def predict(request: HttpRequest):
+def run_predict(req: HttpRequest) -> ThreatResponse:
     if model is None:
         raise HTTPException(status_code=503, detail="Model is not loaded.")
 
-    feature_frame = extract_features(request)
-    
+    feature_frame = extract_features(req)
+
     # 4. 수제 Soft Voting 확률 결합 알고리즘 구현
     if optimized_weights:
         probability = sum(
@@ -310,16 +309,21 @@ def predict(request: HttpRequest):
         )
     else:
         probability = float(model.predict_proba(feature_frame)[0][1])
-        
+
     is_attack = probability >= threshold
-    row = build_feature_row(request)
+    row = build_feature_row(req)
 
     return ThreatResponse(
         log_id       = req.log_id,  # 추가된 부분 (Spring <-> Kafka <-> AI Server 통신을 위해 필요함)
         threat_score = round(probability, 4),
-        ip_address   = request.ip_address if is_attack else "0.0.0.0",
+        ip_address   = req.ip_address if is_attack else "0.0.0.0",
         reason       = get_attack_reason(probability, row),
     )
+
+
+@app.post("/predict", response_model=ThreatResponse)
+def predict(request: HttpRequest):
+    return run_predict(request)
 
 
 @app.post("/predict/batch")
@@ -356,7 +360,7 @@ def predict_batch(requests: list[HttpRequest]):
 # Kafka에서 받은 JSON dict를 HttpRequestData로 검증합고, 예측한 다음 dict로 바꿔 반환합니다.
 # 즉, Kafka 메시지 하나를 처리하는 최소 단위.
 def handle_kafka_message(message: dict) -> dict:
-    request = HttpRequestData(**message)
+    request = HttpRequest(**message)
     result = run_predict(request)
     return result.dict()
 # ─────────────────────────────────────────────────────────
