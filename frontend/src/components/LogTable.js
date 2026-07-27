@@ -1,10 +1,75 @@
-import React from 'react';
+import React, {useState} from 'react';
 
-function LogTable({ logs,pageInfo,onPageChange }) {
+function LogTable({ logs,pageInfo,onPageChange,onSearch,onReset, }) {
+  // 검색 입력창의 현재 값을 관리
+  const [form,setForm] = useState({
+    ip: "",
+    method: "",
+    statusCode: "",
+  });
+
+  const handleChange = event => {
+    const {name,value} = event.target;
+
+    setForm(previous => ({
+      ...previous,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = event => {
+    event.preventDefault();
+    onSearch(form);
+  };
+
+  const handleReset = () => {
+    const emptyForm = {
+      ip: "",
+      method: "",
+      statusCode: "",
+    };
+    setForm(emptyForm);
+    onReset();
+  }
+
   return (
     <section style={{ marginTop: '30px', backgroundColor: 'white', padding: '15px', borderRadius: '10px', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
       
-      <h2 style={{ color: '#007bff' }}>📑 전체 네트워크 로그 ({pageInfo.totalElements})</h2>
+    <form onSubmit={handleSubmit}>
+      <input
+        name="ip"
+        value={form.ip}
+        onChange={handleChange}
+        placeholder="IP address"
+      />
+
+      <select
+        name="method"
+        value={form.method}
+        onChange={handleChange}
+      >
+        <option value="">All methods</option>
+        <option value="GET">GET</option>
+        <option value="POST">POST</option>
+        <option value="PUT">PUT</option>
+        <option value="PATCH">PATCH</option>
+        <option value="DELETE">DELETE</option>
+      </select>
+
+      <input
+        type="number"
+        name="statusCode"
+        min="100"
+        max="599"
+        value={form.statusCode}
+        onChange={handleChange}
+        placeholder="Status"
+      />
+
+      <button type="submit">검색</button>
+      <button type="button" onClick={handleReset}>초기화</button>
+    </form>
+      <h2 style={{ color: '#007bff' }}>📑 전체 로그 ({pageInfo.totalElements})</h2>
       <table border="1" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead style={{ backgroundColor: '#eef6ff' }}>
           <tr>

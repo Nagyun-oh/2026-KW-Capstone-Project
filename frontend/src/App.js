@@ -21,6 +21,12 @@ function App() {
       fetchThreats,
       fetchBlacklists,
       fetchAllData, 
+      searchLogs,
+      resetLogSearch,
+      searchThreats,
+      resetThreatSearch,
+      searchBlacklists,
+      resetBlacklistSearch
   } = useSecurityData();
 
   const {isNewThreat, connectionStatus} 
@@ -48,25 +54,30 @@ function App() {
       <button onClick={fetchAllData} style={{ padding: '20px 20px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', marginBottom: '20px', fontWeight: 'bold' }}>
         🔄 전체 데이터 새로고침
       </button>
- 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+      <LogTable
+      logs={logs}
+      pageInfo = {logPage}
+      onPageChange = {fetchLogs}
+      onSearch={searchLogs}
+      onReset={resetLogSearch}
+     />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px',marginTop:"20px", }}>
       <ThreatTable 
         threats={threats}
         isNewThreat={isNewThreat}
         pageInfo= {threatPage}
         onPageChange = {fetchThreats}
+        onSearch = {searchThreats}
+        onReset={resetThreatSearch}
        />
       <BlacklistTable 
         blacklists={blacklists} 
         pageInfo= {blacklistPage}
         onPageChange = {fetchBlacklists}
+        onSearch={searchBlacklists}
+        onReset={resetBlacklistSearch}
       />
     </div>
-    <LogTable 
-      logs={logs}
-      pageInfo = {logPage}
-      onPageChange = {fetchLogs}
-     />
   </div>    
   );
 }

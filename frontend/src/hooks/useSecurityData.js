@@ -3,6 +3,28 @@ import axios from 'axios';
 
 function useSecurityData() {
 
+  /* == 검색 조건 상태 == */
+  const EMPTY_LOG_SEARCH = {
+    ip:"",
+    method:"",
+    statusCode:"",
+  };
+
+  const EMPTY_THREAT_SEARCH = {
+    threatType: "",
+    severity: "",
+  };
+
+  const EMPTY_BLACKLIST_SEARCH = {
+    ip: "",
+    dangerLevel: "",
+  };
+
+  const [logSearch,setLogSearch] = useState(EMPTY_LOG_SEARCH);
+  const [threatSearch,setThreatSearch] = useState(EMPTY_THREAT_SEARCH);
+  const [blacklistSearch,setBlacklistSearch] = useState(EMPTY_BLACKLIST_SEARCH);
+
+
   /* == 정보 및 페이지 상태 ( 전체 로그, 위협, 블랙리스트) == */
   const [logs, setLogs] = useState([]);
   const [logPage,setLogPage] = useState({
@@ -29,15 +51,27 @@ function useSecurityData() {
   });
  
   /* == 조회 함수 ( 전체 로그, 위협, 블랙리스트) == */
-  const fetchLogs = (page =0) => {
+  const fetchLogs = (page =0, search = logSearch) => {
+    const params = {
+      page,
+      size:20
+    };
+
+    if(search.ip.trim()){
+      params.ip = search.ip.trim();
+    }
+
+    if(search.method){
+      params.method = search.method;
+    }
+
+    if(search.statusCode !== ""){
+      params.statusCode = Number(search.statusCode);
+    }
+
     axios.get(
       `${process.env.REACT_APP_API_BASE_URL}/api/v1/logs`,
-      {
-        params: {
-          page: page,
-          size: 20,
-        },
-      }
+      {params}
     )
     .then(response => {
       // 현재 페이지의 로그 목록 저장
@@ -56,15 +90,20 @@ function useSecurityData() {
     });
   };
 
-  const fetchThreats = (page =0) => {
+  const fetchThreats = (page =0, search = threatSearch) => {
+    const params = {page, size:20};
+
+    if(search.threatType.trim()){
+      params.threatType = search.threatType.trim();
+    }
+
+    if(search.severity){
+      params.severity = search.severity;
+    }
+
     axios.get(
       `${process.env.REACT_APP_API_BASE_URL}/api/v1/threats`,
-      {
-        params: {
-          page: page,
-          size: 20,
-        },
-      }
+      {params}
     )
     .then(response => {
       // 현재 페이지의 로그 목록 저장
@@ -83,15 +122,19 @@ function useSecurityData() {
     });
   };
 
-  const fetchBlacklists = (page =0) => {
+  const fetchBlacklists = (page =0, search = blacklistSearch) => {
+    const params = {page,size:20};
+
+    if(search.ip.trim()){
+      params.ip = search.ip.trim();
+    }
+    if(search.dangerLevel !== ""){
+      params.dangerLevel = Number(search.dangerLevel);
+    }
+
     axios.get(
       `${process.env.REACT_APP_API_BASE_URL}/api/v1/blacklist`,
-      {
-        params: {
-          page: page,
-          size: 20,
-        },
-      }
+      {params}
     )
     .then(response => {
       // 현재 페이지의 로그 목록 저장
@@ -117,6 +160,37 @@ function useSecurityData() {
     fetchBlacklists(0);
   };
 
+  /* 검색 적용 및 초기화 함수 */
+  const searchLogs = condition => {
+    setLogSearch(condition);
+    fetchLogs(0,condition);
+  }
+  const resetLogSearch = () => {
+    setLogSearch(EMPTY_LOG_SEARCH);
+    fetchLogs(0,EMPTY_LOG_SEARCH);
+  }
+
+  const searchThreats = condition => {
+    setThreatSearch(condition);
+    fetchThreats(0,condition);
+  };
+
+  const resetThreatSearch = () => {
+    setThreatSearch(EMPTY_THREAT_SEARCH);
+    fetchThreats(0,EMPTY_THREAT_SEARCH);
+  };
+
+  const searchBlacklists = condition => {
+    setBlacklistSearch(condition);
+    fetchBlacklists(0,condition);
+  };
+
+  const resetBlacklistSearch= () => {
+    setBlacklistSearch(EMPTY_BLACKLIST_SEARCH);
+    fetchBlacklists(0,EMPTY_BLACKLIST_SEARCH);
+  }
+
+
   /* 
     반환 객체
       사용하는 이유 : 커스텀 Hook 내부 값은 기본적으로 외부에서 접근 할 수 없음.
@@ -124,6 +198,7 @@ function useSecurityData() {
   */
   return { 
       logs, 
+      logSearch,
       threats,
       blacklists, 
       logPage,
@@ -132,7 +207,13 @@ function useSecurityData() {
       fetchLogs,
       fetchThreats,
       fetchBlacklists,
-      fetchAllData 
+      fetchAllData,
+      searchLogs,
+      resetLogSearch,
+      searchThreats,
+      resetThreatSearch,
+      searchBlacklists,
+      resetBlacklistSearch,
   };
 }
 

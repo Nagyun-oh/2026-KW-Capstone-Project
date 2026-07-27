@@ -1,18 +1,70 @@
-import React from 'react';
+import React, {useState} from 'react';
 
-function ThreatTable ( {threats,
+function ThreatTable ( {
+  threats,
   isNewThreat,
   pageInfo,
-  onPageChange})
+  onPageChange,
+  onSearch,
+  onReset,
+})
 {
+  const [form,setForm] = useState({
+    threatType: "",
+    severity: "",
+  });
+
+  const handleChange = event => {
+    const {name, value} = event.target;
+
+    setForm(previous => ({
+      ...previous,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = event => {
+    event.preventDefault();
+    onSearch(form);
+  };
+
+  const handleReset = () =>{
+    const emptyForm = {threatType: "", severity: ""};
+    setForm(emptyForm);
+    onReset();
+  };
+
 return (
         <section style={{ 
           backgroundColor: 'white', padding: '15px', borderRadius: '10px',
            boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
            border: isNewThreat ? '2px solid red' : '1px solid transparent', 
            transition: 'all 0.3s ease' }}>
+        <form onSubmit={handleSubmit}>
+          <input
+            name="threatType"
+            value={form.threatType}
+            onChange={handleChange}
+            placeholder="Threat type"
+          />
+
+          <select
+            name="severity"
+            value={form.severity}
+            onChange={handleChange}
+          >
+            <option value="">All severity</option>
+            <option value="MEDIUM">MEDIUM</option>
+            <option value="HIGH">HIGH</option>
+            <option value="CRITICAL">CRITICAL</option>
+          </select>
+
+          <button type="submit">검색</button>
+          <button type="button" onClick={handleReset}>초기화</button>
+        </form>
+
           <h2 style={{ color: '#d9534f' }}>
-            🚨 실시간 위협 탐지 ({pageInfo.totalElements})
+            🚨 위협 탐지 ({pageInfo.totalElements})
             {isNewThreat && <span style={{ marginLeft: '10px', fontSize: '14px', animation: 'blink 0.5s infinite' }}>● NEW</span>}
             </h2>
           <table border="1" style={{ width: '100%', borderCollapse: 'collapse' }}>
