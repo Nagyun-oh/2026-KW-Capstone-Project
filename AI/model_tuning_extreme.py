@@ -67,7 +67,8 @@ SQL_KEYWORDS            = ["select","insert","update","delete","drop","union","w
 XSS_KEYWORDS            = ["<script","script","alert","onerror","onload","javascript:","<img","<svg"]
 PATH_TRAVERSAL_PATTERNS = ["../","..\\","%2e%2e","etc/passwd","boot.ini"]
 SPECIAL_CHARS           = ["'",'"',"<",">","--",";","%","(",")",  "="]
-CATEGORICAL_COLUMNS     = ["method","user_agent","url_path","file_extension"]
+#CATEGORICAL_COLUMNS     = ["method","user_agent","url_path","file_extension"]
+CATEGORICAL_COLUMNS     = ["method","user_agent"]
 FEATURES = [
     "method_encoded",
     "user_agent_encoded",
