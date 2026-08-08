@@ -1,7 +1,5 @@
 package com.example.security_log_system.kafka;
 
-// ai-request-topic produce
-
 import com.example.security_log_system.dto.AiRequestDto;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -11,7 +9,11 @@ import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
+import lombok.extern.slf4j.Slf4j;
 
+// TODO: DLQ 처리 고민
+
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class AiRequestProducer {
@@ -38,7 +40,7 @@ public class AiRequestProducer {
                             .register(meterRegistry)
                             .increment();
 
-            System.out.println("[Kafka Producer] AI analysis request sent. logId= "+request.getLogId());
+            log.info("AI analysis request sent. logId={}",request.getLogId());
         } catch (JsonProcessingException e){
             result = "failure";
 

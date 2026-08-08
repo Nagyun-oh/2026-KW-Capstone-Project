@@ -15,11 +15,3 @@ public interface BlacklistRepository
         JpaSpecificationExecutor<IpBlacklist> {
     Optional<IpBlacklist> findByIpAddress(String ipAddress);
 }
-
-/*
-TODO
-    - ipAddress 중복 방지를 위해 Entity에 unique 제약 추가 검토
-    - 만료되지 않은 IP만 조회하는 메서드 추가 검토
-      예: findByIpAddressAndExpiredAtAfter(...)
-    - 전체 블랙리스트 조회 시 최신순 정렬 메서드 추가
-*/

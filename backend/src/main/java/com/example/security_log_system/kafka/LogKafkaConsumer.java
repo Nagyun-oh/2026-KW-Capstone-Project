@@ -1,14 +1,17 @@
 package com.example.security_log_system.kafka;
 
-
 import com.example.security_log_system.service.LogService;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 
+// TODO: DLQ 처리 고민
+
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class LogKafkaConsumer {
@@ -29,8 +32,8 @@ public class LogKafkaConsumer {
                     .register(meterRegistry)
                     .increment();
 
-        } catch (Exception e) {
-            System.err.println("[Kafka Consumer Error] 메시지 처리 실패: "+e.getMessage());
+        } catch (Exception exception) {
+            log.error("Failed to process Kafka log message",exception);
 
             result = "failure";
 

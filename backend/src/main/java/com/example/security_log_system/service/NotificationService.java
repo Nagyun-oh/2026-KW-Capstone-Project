@@ -8,7 +8,9 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class NotificationService {
@@ -16,14 +18,13 @@ public class NotificationService {
     // 웹소켓 전송 도구
     private final SimpMessagingTemplate messagingTemplate;
 
-    // 비동기 처리: 슬랙이나 메일 전송이 늦어져도 로그 저장은 바로 완료됨
+    // WebSocket 알림 전송을 별도 스레드에서 처리
     @Async
     public void sendUrgentAlert(String ip, String type, int level){
-        // 지금은 콘솔 로그로 실시간 알림 시뮬레이션
-        System.out.println("🚨 [REAL-TIME ALERT] 고위험군 위협 감지!");
-        System.out.println("🚨 대상 IP: "+ip+"유형: "+type+" | 위험도: "+level);
 
-        // 웹소켓 실시간 전송 (리액트 대시보드로 데이터 전송)
+        log.warn("Real-time threat alert sent. type={},level={}", type, level);
+
+        // 리액트 대시보드로 데이터 전송
         Map<String,Object> payload = new HashMap<>();
         payload.put("ip",ip);
         payload.put("type",type);

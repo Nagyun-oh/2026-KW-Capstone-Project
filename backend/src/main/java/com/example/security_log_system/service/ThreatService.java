@@ -5,26 +5,22 @@ import com.example.security_log_system.dto.ThreatDto;
 import com.example.security_log_system.dto.ThreatResponseDto;
 import com.example.security_log_system.dto.ThreatSearchCondition;
 import com.example.security_log_system.entity.DetectedThreat;
-import com.example.security_log_system.entity.IpBlacklist;
 import com.example.security_log_system.entity.LogEntry;
-import com.example.security_log_system.repository.BlacklistRepository;
 import com.example.security_log_system.repository.LogRepository;
 import com.example.security_log_system.repository.ThreatRepository;
 import com.example.security_log_system.repository.ThreatSpecification;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
-import org.aspectj.weaver.ast.Not;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import lombok.extern.slf4j.Slf4j;
 
-
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -34,8 +30,6 @@ public class ThreatService {
     private final ThreatRepository threatRepository;
     private final BlacklistService blacklistService;
     private final NotificationService notificationService;
-
-    private final Map<String, Integer> errorCounter = new ConcurrentHashMap<>();    // IP별 403 에러 횟수 저장 (IP, 횟수)
     private final MeterRegistry meterRegistry;
 
     @Transactional(readOnly = true)
@@ -45,9 +39,7 @@ public class ThreatService {
     }
 
 
-    /*
-     * API 테스트용
-     * */
+    // HTTP 보조 API를 통해 전달된 위협 저장
     public void saveDetectedThreat(ThreatDto threatDto) {
 
         DetectedThreat threat = DetectedThreat.builder()
@@ -58,22 +50,26 @@ public class ThreatService {
 
         threatRepository.save(threat);
         incrementThreatDetectedMetric(threat.getSeverity());
-        System.out.println("[API 테스트] 새로운 위협이 등록되었습니다: " + threatDto.getThreatType());
+        log.info("Threat recorded through HTTP endpoint. type={},severity={}",
+                threat.getThreatType(),
+                threat.getSeverity()
+        );
 
         // 위험도가 높으면 자동으로 블랙리스트 등록
         if (threatDto.getDangerLevel() >= 4) {
-            blacklistService.addToBlacklist(threatDto.getClientIp(), " 직접 POST: " + threatDto.getThreatType()
+            blacklistService.addToBlacklist(threatDto.getClientIp(), " [API 수동 테스트]" + threatDto.getThreatType()
                     , threatDto.getDangerLevel());
 
-            notificationService.sendUrgentAlert(threatDto.getClientIp()," 직접 POST",threatDto.getDangerLevel());
-            System.out.println("[API 테스트] 고위험 IP 블랙리스트 등록: " + threatDto.getClientIp());
+            notificationService.sendUrgentAlert(threatDto.getClientIp(),"[API 수동 테스트]",threatDto.getDangerLevel());
+            log.warn("Critical threat added to blacklist. type={}, dangerLevel={}",
+                    threat.getThreatType(),
+                    threat.getSeverity()
+            );
         }
 
     }
 
-    /*
-    * Kafka 테스트용
-    * */
+    // Kafka AI 분석 결과를 기반으로 위협 저장
     public void saveAiDetectedThreat(AiResponseDto aiResponse) {
         if (aiResponse.getLogId() ==null){
             throw new IllegalArgumentException("AI response logId is null");
@@ -119,15 +115,4 @@ public class ThreatService {
     }
 
 }
-
-/*
-TODO
-    - blacklistRepository, IpBlacklist, Not import는 현재 사용되지 않으므로 제거
-    - 규칙 기반 탐지 analyzeLogEntry를 사용할지 제거할지 결정
-    - threatScore 값을 DetectedThreat에 저장할지 검토
-    - severity 문자열을 Enum으로 변경 검토
-    - saveDetectedThreat와 saveAiDetectedThreat 역할 구분 문서화
-    - System.out 대신 Logger 사용
-    - AI 응답 검증 추가: score 범위, reason null 처리
-*/
 

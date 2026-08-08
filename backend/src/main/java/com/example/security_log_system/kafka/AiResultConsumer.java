@@ -7,7 +7,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
+import lombok.extern.slf4j.Slf4j;
 
+// TODO: DLQ 처리 고민
+
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class AiResultConsumer {
@@ -24,23 +28,11 @@ public class AiResultConsumer {
         try{
             AiResponseDto aiResponse = objectMapper.readValue(message, AiResponseDto.class);
             threatService.saveAiDetectedThreat(aiResponse);
-            System.out.println("[Kafka Consumer] AI analysis result received. logId= "+aiResponse.getLogId());
-        }catch (JsonProcessingException e){
-            // JSON 형식 오류
-            System.err.println("[AI Result Consumer Error] Invalid message format: "+message);
-        }catch (Exception e){
-            // 비즈니스 처리/DB 저장 오류
-            System.err.println("[AI Result Consumer Error] Failed to save AI result: "+e.getMessage());
+            log.info("AI analysis result received. logId={}",aiResponse.getLogId());
+        }catch (JsonProcessingException exception){
+            log.warn("Invalid AI result message. reason={}",exception.getOriginalMessage());
+        }catch (Exception exception){
+            log.error("Failed to save AI result",exception);
         }
     }
-
 }
-
-/*
-TODO
-    - System.err 대신 Logger 사용
-    - 잘못된 AI 결과 메시지를 dead-letter-topic으로 이동 검토
-    - topic/groupId를 application.yml로 이동
-    - AI 응답 검증 추가: logId, threatScore, ipAddress, reason
-    - threat_score 범위 검증 추가
-*/

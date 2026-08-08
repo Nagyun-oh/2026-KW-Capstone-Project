@@ -13,11 +13,8 @@ import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import java.util.HashMap;
 import java.util.Map;
 
-// Kafka에서 메시지를 수신하기 위한 Consumer 설정 클래스
+/* Kafka에서 메시지를 수신하기 위한 Consumer 설정 클래스 */
 
-// @Configuration은 이 클래스가 Spring 설정 클래스라는 뜻이다.
-// Spring이 실행될 때 이 클래스를 읽고, 내부의 @Bean 메서드들을 Spring 컨테이너에 등록
-// @EnableKafka는 @KafkaListener를 활성화한다.
 @Configuration
 @EnableKafka
 public class KafkaConsumerConfig {

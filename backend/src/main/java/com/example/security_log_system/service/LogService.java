@@ -18,19 +18,19 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import lombok.extern.slf4j.Slf4j;
 
-
-@Transactional  // 데이터 무결성을 위해 스프링 AOP기반 트랜잭션 관리 적용
+@Slf4j
+@Transactional
 @Service
 @RequiredArgsConstructor
 public class LogService {
 
     private final LogRepository logRepository;
-    private final ThreatService threatService;
     private final BlacklistService blacklistService;
     private final AiRequestProducer aiRequestProducer;
 
-    // 검색
+    // GET
     @Transactional(readOnly = true)
     public Page<LogResponseDto> getLogs(LogSearchCondition condition, Pageable pageable){
         return logRepository
@@ -40,13 +40,10 @@ public class LogService {
 
 
     // JSON 파싱을 위한 객체 추가
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     public void processRawLog(String kafkaMessage) {
-
-        // try-catch : 파싱 중 에러나 DB 저장 중 에러가 발생해도 프로그램이 죽지 않고 에러 메시지만 출력하도록 방어적으로 설계
         try{
-
             JsonNode jsonNode = objectMapper.readTree(kafkaMessage);
 
             // {"log" : "..."} 테스트
@@ -66,12 +63,10 @@ public class LogService {
                 processAiInputJson(jsonNode);
                 return;
             }
-
-            System.err.println("[Kafka Message Error] 지원하지 않는 메시지 형식: "+kafkaMessage);
-
-        } catch(JsonProcessingException e) {
+            log.warn("Unsupported Kafka message format. length={}",kafkaMessage.length());
+        } catch(JsonProcessingException exception) {
             // 로그  파싱 실패 시 런타임 예외로 던져서 전체 트랙잭션 롤백 유도
-            throw new RuntimeException("Kafka 메시지 파싱 에러: ",e);
+            throw new RuntimeException("Kafka message parsing error: ",exception);
         }
     }
 
@@ -109,7 +104,6 @@ public class LogService {
                     .rawLog(message)
                     .createdAt(LocalDateTime.now())
                     .build());
-            System.out.println("[DB] network_logs에서 파싱 및 저장 완료: " + url + " (" + status + ")");
 
             //  AI 서버로 분석 요청
             AiRequestDto aiRequest = AiRequestDto.builder()
@@ -161,12 +155,6 @@ public class LogService {
             urlPath = fullPath.substring(0,queryIndex);
             queryParams = fullPath.substring(queryIndex+1);
         }
-
-        // 추가 예정
-        /*if (blacklistService.isBlocked(ipAddress)) {
-            return;
-        }
-        */
 
         // 입력된 로그 DB에 저장
         LogEntry entry = logRepository.save(LogEntry.builder()
@@ -233,13 +221,3 @@ public class LogService {
         aiRequestProducer.sendAnalysisRequest(aiRequest);
     }
 }
-
-/*
-TODO
-    - ObjectMapper를 new로 직접 만들지 말고 Spring Bean 주입으로 변경
-    - threatService 필드는 현재 거의 사용되지 않으므로 제거하거나 규칙 기반 탐지 흐름 재활성화
-    - private 메서드가 많아지므로 LogParser 클래스로 분리 검토
-    - 지원하지 않는 메시지 형식은 Logger로 남기고 DLQ 처리 검토
-    - statusCode 기본값 0 저장 케이스 검토
-    - 블랙리스트 체크 결과를 현재 사용하지 않으므로 차단 처리 흐름 명확화
-* */
