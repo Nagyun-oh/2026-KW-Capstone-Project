@@ -7,7 +7,7 @@ import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-// Swagger/OpenAPI 문서에서 JWT 인증을 사용할 수 있게 설정하는 클래스
+/* Swagger/OpenAPI 문서에서 JWT 인증을 사용할 수 있게 설정하는 클래스 */
 
 @Configuration
 public class SwaggerConfig {

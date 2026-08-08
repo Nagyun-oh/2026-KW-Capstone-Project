@@ -7,12 +7,14 @@ import com.example.security_log_system.dto.LogSearchCondition;
 import com.example.security_log_system.entity.LogEntry;
 import com.example.security_log_system.kafka.AiRequestProducer;
 import com.example.security_log_system.repository.LogRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -36,13 +38,13 @@ public class LogServiceTest {
     private LogRepository logRepository;
 
     @Mock
-    private ThreatService threatService;
-
-    @Mock
     private BlacklistService blacklistService;
 
     @Mock
     private AiRequestProducer aiRequestProducer;
+
+    @Spy
+    private ObjectMapper objectMapper = new ObjectMapper();
 
     @InjectMocks
     private LogService logService;
@@ -140,10 +142,4 @@ public class LogServiceTest {
                eq(pageable)
        );
    }
-
-
-
-
-
-
 }

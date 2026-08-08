@@ -20,14 +20,14 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
-// 인증, 인가, JWT 필터, CORS, 비밀번호 암호화 설정 클래스
+/* Spring Security의 인증·인가 정책과 JWT 필터, API 접근 권한을 설정하는 클래스 */
 
-@Configuration              // 설정 클래스
+@Configuration
 @EnableWebSecurity          // Spring Security 활성화
-@RequiredArgsConstructor    // final 필드 생성자 자동 생성 (JwtFilter 주입)
+@RequiredArgsConstructor    // final 필드 생성자 자동 생성
 public class SecurityConfig {
-    private final JwtFilter jwtFilter;
 
+    private final JwtFilter jwtFilter;
 
     // 어떤 요청을 허용/차단할지에 대한 보안 규칙 설정
     @Bean
@@ -45,15 +45,14 @@ public class SecurityConfig {
                 // TODO: 현재는 로그, 위협, 블랙리스트 API도 모두 permitAll()로 열려 있지만, 나중에 보호대상으로 바꿔야함.
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/api/v1/auth/**",  // 로그인/회원가입 -> 누구나 접근 가능
-                                "/api/v1/logs/**",          // 임시 추가
-                                "/api/v1/threats/**",       // 임시 추가
-                                "/api/v1/blacklist/**",     // 임시 추가
-                                "/ws-security/**",          // 임시 추가
-                                "/swagger-ui/**",           // API 문서 -> 누구나 접근 가능
-                                "/v3/api-docs",
-                                "/v3/api-docs/**",          // API 문서 -> 누구나 접근 가능
-                                "/health",                   // 서버 상태 확인 -> 누구나 접근 가능
+                                "/api/v1/auth/**",      // 로그인/회원가입 -> 누구나 접근 가능
+                                "/api/v1/logs/**",              // 임시 추가
+                                "/api/v1/threats/**",           // 임시 추가
+                                "/api/v1/blacklist/**",         // 임시 추가
+                                "/ws-security/**",              // 임시 추가
+                                "/swagger-ui/**",               // API 문서 -> 누구나 접근 가능
+                                "/v3/api-docs/**",              // API 문서 -> 누구나 접근 가능
+                                "/health",                      // 서버 상태 확인 -> 누구나 접근 가능
                                 // 개발 환경에서 성능 지표 확인을 위해 Actuator endpoint를 허용함.
                                 // 운영 환경에서는 Prometheus 서버 또는 관리자만 접근 가능하도록 제한해야 함.
                                 "/actuator/health",
@@ -81,13 +80,13 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
-    // CORS 정책을 직접 등록
+    // CORS 정책을 직접 등록 (Spring Security 필터 단계에서 CORS를 처리)
     // React 개발 서버 주소인 localhost:3000에서 오는 요청을 허용한다.
     @Bean
     public CorsConfigurationSource corsConfigurationSource(){
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(List.of("http://localhost:3000"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT","PATCH" ,"DELETE","OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
 

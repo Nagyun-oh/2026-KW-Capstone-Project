@@ -13,7 +13,7 @@ import org.springframework.kafka.core.ProducerFactory;
 import java.util.HashMap;
 import java.util.Map;
 
-// Kafka로 메시지를 송신하기 위한 Producer 설정 클래스
+/* Kafka로 메시지를 송신하기 위한 Producer 설정 클래스 */
 
 @Configuration
 public class KafkaProducerConfig {

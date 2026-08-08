@@ -3,8 +3,6 @@ package com.example.security_log_system.controller;
 import com.example.security_log_system.dto.ThreatDto;
 import com.example.security_log_system.dto.ThreatResponseDto;
 import com.example.security_log_system.dto.ThreatSearchCondition;
-import com.example.security_log_system.entity.DetectedThreat;
-import com.example.security_log_system.repository.ThreatRepository;
 import com.example.security_log_system.service.ThreatService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -14,8 +12,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Tag(name = "Threat API", description = "위협 데이터 조회 및 관리 API")
 @RestController

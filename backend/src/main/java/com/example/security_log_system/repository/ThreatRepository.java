@@ -12,17 +12,4 @@ import java.util.List;
 @Repository
 public interface ThreatRepository
         extends JpaRepository<DetectedThreat,Long>,
-        JpaSpecificationExecutor<DetectedThreat> {
-    List<DetectedThreat> findByLogEntryId(Long logId);
-}
-
-/*
-TODO
-    - 최신 위협순 조회 메서드 추가
-      예: findTop100ByOrderByDetectedAtDesc()
-    - severity별 조회 메서드 추가 검토
-      예: findBySeverity(String severity)
-    - 확인하지 않은 위협 조회 메서드 추가 검토
-      예: findByIsCheckedFalse()
-    - findByLogEntryId를 사용하는 상세 API 추가 여부 검토
-*/
+        JpaSpecificationExecutor<DetectedThreat> { }

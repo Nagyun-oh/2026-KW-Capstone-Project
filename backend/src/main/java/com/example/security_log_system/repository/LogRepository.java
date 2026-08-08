@@ -9,7 +9,5 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 /*  전체 방문 기록(로그) 관리*/
 public interface LogRepository
         extends JpaRepository<LogEntry,Long>,
-                JpaSpecificationExecutor<LogEntry> {
-    Page<LogEntry> findByIpAddress(String ipAddress,Pageable pageable);
-}
+                JpaSpecificationExecutor<LogEntry> { }
 

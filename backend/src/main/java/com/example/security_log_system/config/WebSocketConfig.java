@@ -6,7 +6,7 @@ import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBr
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
-// 실시간 알림용 WebSocket/STOMP 설정 클래스
+/* 실시간 알림용 WebSocket/STOMP 설정 클래스 */
 
 @Configuration
 @EnableWebSocketMessageBroker       // STOMP 기반 WebSocket 메시징을 활성화
