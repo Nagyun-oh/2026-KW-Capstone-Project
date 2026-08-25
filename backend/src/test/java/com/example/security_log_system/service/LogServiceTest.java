@@ -26,6 +26,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -52,6 +53,26 @@ public class LogServiceTest {
 
     @InjectMocks
     private LogService logService;
+
+    @Test
+    @DisplayName("로그 번호로 전체 원본 로그를 조회한다")
+    void getLog_whenLogExists_thenReturnDetail() {
+        LogEntry entry = LogEntry.builder()
+                .id(1L)
+                .ipAddress("192.168.0.10")
+                .requestMethod("GET")
+                .requestUrl("/admin")
+                .statusCode(200)
+                .rawLog("{\"transaction\":{}}")
+                .createdAt(LocalDateTime.now())
+                .build();
+        when(logRepository.findById(1L)).thenReturn(Optional.of(entry));
+
+        var result = logService.getLog(1L);
+
+        assertThat(result.getId()).isEqualTo(1L);
+        assertThat(result.getRawLog()).isEqualTo("{\"transaction\":{}}");
+    }
 
     @Test
     @DisplayName("유효한 Nginx 로그 수신 시 로그를 파싱하여 저장하고 AI 분석 요청을 전송한다")

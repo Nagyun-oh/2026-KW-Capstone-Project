@@ -1,6 +1,7 @@
 package com.example.security_log_system.controller;
 
 
+import com.example.security_log_system.dto.LogDetailResponseDto;
 import com.example.security_log_system.dto.LogResponseDto;
 import com.example.security_log_system.dto.LogSearchCondition;
 import com.example.security_log_system.service.LogService;
@@ -35,6 +36,12 @@ public class LogController {
                 Sort.by(Sort.Direction.DESC,"createdAt")
         );
         return ResponseEntity.ok(logService.getLogs(condition,pageable));
+    }
+
+    // 큰 rawLog는 목록이 아닌 상세 조회에서만 반환한다.
+    @GetMapping("/{logId}")
+    public ResponseEntity<LogDetailResponseDto> getLog(@PathVariable Long logId) {
+        return ResponseEntity.ok(logService.getLog(logId));
     }
 
 

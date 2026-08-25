@@ -1,6 +1,6 @@
 import React, {useState} from 'react';
 
-function LogTable({ logs,pageInfo,onPageChange,onSearch,onReset, }) {
+function LogTable({ logs,pageInfo,onPageChange,onSearch,onReset,onLogSelect, }) {
   // 검색 입력창의 현재 값을 관리
   const [form,setForm] = useState({
     ip: "",
@@ -73,6 +73,7 @@ function LogTable({ logs,pageInfo,onPageChange,onSearch,onReset, }) {
       <table border="1" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead style={{ backgroundColor: '#eef6ff' }}>
           <tr>
+            <th>로그 번호</th>
             <th>IP</th>
             <th>Method</th>
             <th>URL</th>
@@ -82,7 +83,17 @@ function LogTable({ logs,pageInfo,onPageChange,onSearch,onReset, }) {
         </thead>
         <tbody>
           {logs.map(log => (
-            <tr key={log.id} style={{ textAlign: 'center' }}>
+            // 마우스 클릭과 키보드 선택 모두 동일한 상세 모달을 연다.
+            <tr
+              key={log.id}
+              tabIndex="0"
+              onClick={() => onLogSelect?.(log.id)}
+              onKeyDown={event => {
+                if (event.key === 'Enter' || event.key === ' ') onLogSelect?.(log.id);
+              }}
+              style={{ textAlign: 'center', cursor: 'pointer' }}
+            >
+              <td>{log.id}</td>
               <td>{log.ipAddress}</td>
               <td>{log.requestMethod}</td>
               <td>{log.requestUrl}</td>

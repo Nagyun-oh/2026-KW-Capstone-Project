@@ -1,14 +1,17 @@
-import React from 'react';
+import React, {useState} from 'react';
 import {ToastContainer} from 'react-toastify';  // 토스트 라이브러리 추가
 import 'react-toastify/dist/ReactToastify.css';
 
 import ThreatTable from './components/ThreatTable';
 import BlacklistTable from './components/BlacklistTable';
 import LogTable from './components/LogTable';
+import LogDetailModal from './components/LogDetailModal';
 import useSecurityData from './hooks/useSecurityData';
 import useWebSocket from './hooks/useWebSocket';
 
 function App() {
+  // 전체 로그와 위협 목록이 동일한 상세 모달을 공유한다.
+  const [selectedLogId, setSelectedLogId] = useState(null);
  
   const { 
       logs, 
@@ -60,6 +63,7 @@ function App() {
       onPageChange = {fetchLogs}
       onSearch={searchLogs}
       onReset={resetLogSearch}
+      onLogSelect={setSelectedLogId}
      />
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px',marginTop:"20px", }}>
       <ThreatTable 
@@ -69,6 +73,7 @@ function App() {
         onPageChange = {fetchThreats}
         onSearch = {searchThreats}
         onReset={resetThreatSearch}
+        onLogSelect={setSelectedLogId}
        />
       <BlacklistTable 
         blacklists={blacklists} 
@@ -78,6 +83,10 @@ function App() {
         onReset={resetBlacklistSearch}
       />
     </div>
+    <LogDetailModal
+      logId={selectedLogId}
+      onClose={() => setSelectedLogId(null)}
+    />
   </div>    
   );
 }

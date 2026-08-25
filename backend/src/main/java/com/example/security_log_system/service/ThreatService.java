@@ -44,8 +44,10 @@ public class ThreatService {
 
         DetectedThreat threat = DetectedThreat.builder()
                 .threatType(threatDto.getThreatType())
+                .detectionSource("MANUAL")
                 .severity(mapRiskLevelToSeverity(threatDto.getDangerLevel()))
                 .description(threatDto.getDescription())
+                .detectedAt(LocalDateTime.now())
                 .build();
 
         threatRepository.save(threat);
@@ -83,9 +85,12 @@ public class ThreatService {
         if("0.0.0.0".equals(aiResponse.getIpAddress())){
             return;
         }
+        // AI가 돌려준 logId를 유지해 위협 결과에서 원본 HTTP 로그를 추적한다.
         DetectedThreat threat = DetectedThreat.builder()
                 .logEntry(entry)
                 .threatType("AI Detection")
+                .detectionSource("AI")
+                .threatScore((double) aiResponse.getThreatScore())
                 .severity(aiResponse.getThreatScore() >= 0.8 ? "CRITICAL" : "HIGH")
                 .description(aiResponse.getReason())
                 .detectedAt(LocalDateTime.now())
@@ -115,4 +120,3 @@ public class ThreatService {
     }
 
 }
-

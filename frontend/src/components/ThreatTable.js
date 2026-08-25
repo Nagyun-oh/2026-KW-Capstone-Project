@@ -7,6 +7,7 @@ function ThreatTable ( {
   onPageChange,
   onSearch,
   onReset,
+  onLogSelect,
 })
 {
   const [form,setForm] = useState({
@@ -70,7 +71,9 @@ return (
           <table border="1" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead style={{ backgroundColor: '#fff5f5' }}>
               <tr>
-                <th>유형</th>
+                <th>위협 번호</th>
+                <th>로그 번호</th>
+                <th>AI 점수</th>
                 <th>위험도</th>
                 <th>설명</th>
                 </tr>
@@ -78,7 +81,17 @@ return (
             <tbody>
               {threats.map(t => (
                 <tr key={t.id} style={{ textAlign: 'center' }}>
-                  <td>{t.threatType}</td>
+                  <td>{t.id}</td>
+                  <td>
+                    {/* 위협에 연결된 원본 로그가 있을 때만 상세 조회를 제공한다. */}
+                    {t.logId != null ? (
+                      <button type="button" onClick={() => onLogSelect?.(t.logId)}>
+                        {t.logId}
+                      </button>
+                    ) : '-'}
+                  </td>
+                  {/* 수동/WAF 탐지는 AI 점수가 없을 수 있다. */}
+                  <td>{t.threatScore != null ? Number(t.threatScore).toFixed(4) : '-'}</td>
                   <td style={{ color: t.severity === 'CRITICAL' ? 'red' : 'orange' }}>{t.severity}</td>
                   <td>{t.description}</td>
                 </tr>

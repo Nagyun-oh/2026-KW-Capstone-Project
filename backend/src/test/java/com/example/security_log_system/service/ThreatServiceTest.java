@@ -245,6 +245,8 @@ public class ThreatServiceTest {
         DetectedThreat saved = captor.getValue();
         assertThat(saved.getLogEntry()).isEqualTo(logEntry);
         assertThat(saved.getThreatType()).isEqualTo("AI Detection");
+        assertThat(saved.getDetectionSource()).isEqualTo("AI");
+        assertThat(saved.getThreatScore()).isCloseTo(0.9, within(0.0001));
         assertThat(saved.getSeverity()).isEqualTo("CRITICAL");
         assertThat(saved.getDescription()).isEqualTo("AI detected");
         assertThat(saved.getDetectedAt()).isNotNull();
@@ -290,6 +292,8 @@ public class ThreatServiceTest {
         DetectedThreat saved = captor.getValue();
 
         // then
+        assertThat(saved.getDetectionSource()).isEqualTo("AI");
+        assertThat(saved.getThreatScore()).isCloseTo(0.7, within(0.0001));
         assertThat(saved.getSeverity()).isEqualTo("HIGH");
 
         assertThat(meterRegistry.counter(
@@ -365,6 +369,5 @@ public class ThreatServiceTest {
     7. AI score가 0.8 미만이면 HIGH 저장 + blacklist 등록 안함
     8. AI 응답 IP가 0.0.0.0이면 아무 작업도 하지 않는다.
 */
-
 
 

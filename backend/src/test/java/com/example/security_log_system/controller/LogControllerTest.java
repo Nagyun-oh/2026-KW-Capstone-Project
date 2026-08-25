@@ -1,6 +1,7 @@
 package com.example.security_log_system.controller;
 
 
+import com.example.security_log_system.dto.LogDetailResponseDto;
 import com.example.security_log_system.dto.LogResponseDto;
 import com.example.security_log_system.dto.LogSearchCondition;
 import com.example.security_log_system.exception.GlobalExceptionHandler;
@@ -109,6 +110,29 @@ public class LogControllerTest {
 
     }
 
+    @Test
+    @DisplayName("로그 번호로 전체 로그 상세 정보를 조회한다")
+    void getLog_whenLogExists_thenReturnDetail() throws Exception {
+        LogDetailResponseDto detail = LogDetailResponseDto.builder()
+                .id(1L)
+                .ipAddress("192.168.0.10")
+                .requestMethod("GET")
+                .requestUrl("/admin")
+                .statusCode(200)
+                .rawLog("{\"transaction\":{}}")
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        when(logService.getLog(1L)).thenReturn(detail);
+
+        mockMvc.perform(get("/api/v1/logs/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.rawLog").value("{\"transaction\":{}}"));
+
+        verify(logService).getLog(1L);
+    }
+
 
     private LogResponseDto createLogResponse(String ipAddress){
         return LogResponseDto.builder()
@@ -117,7 +141,6 @@ public class LogControllerTest {
                 .requestMethod("GET")
                 .requestUrl("/admin")
                 .statusCode(200)
-                .rawLog("sample log")
                 .createdAt(LocalDateTime.now())
                 .build();
     }

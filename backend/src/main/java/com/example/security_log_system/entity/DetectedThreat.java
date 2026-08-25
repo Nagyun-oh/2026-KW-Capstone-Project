@@ -32,6 +32,12 @@ public class DetectedThreat {
     @Column(length = 10)
     private String severity; // HIGH, MEDIUM, LOW
 
+    @Column(name = "detection_source", length = 20)
+    private String detectionSource; // AI, WAF, MANUAL
+
+    @Column(name = "threat_score")
+    private Double threatScore; // AI 점수가 없는 탐지는 null 허용
+
     @Column(columnDefinition = "TEXT")
     private String description;
 
@@ -48,5 +54,4 @@ TODO
     - severity를 String 대신 Enum으로 관리 검토
     - isChecked 기본값 false 명확화
     - Entity 직접 반환 대신 ThreatResponseDto에서 logId만 노출
-    - threatScore 컬럼이 필요한지 검토, 현재 AI 점수는 저장되지 않음
 */

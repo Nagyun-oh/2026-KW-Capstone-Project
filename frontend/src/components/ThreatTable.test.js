@@ -1,11 +1,12 @@
-import {render,screen} from '@testing-library/react';
+import {fireEvent,render,screen} from '@testing-library/react';
 import ThreatTable from './ThreatTable';
 
 test('탐지된 위협 정보를 화면에 표시한다', () => {
     const threats = [
         {
             id: 1,
-            threatType: 'AI 탐지',
+            logId: 152,
+            threatScore: 0.9123,
             severity: 'CRITICAL',
             description: 'URL 공격 키워드'
         }
@@ -18,6 +19,7 @@ test('탐지된 위협 정보를 화면에 표시한다', () => {
         size:20,
     };
     const onPageChange = jest.fn();
+    const onLogSelect = jest.fn();
 
     render(
     <ThreatTable
@@ -25,14 +27,19 @@ test('탐지된 위협 정보를 화면에 표시한다', () => {
         isNewThreat={true}
         pageInfo={pageInfo}
         onPageChange={onPageChange}
+        onLogSelect={onLogSelect}
     />
     );
 
-    expect(screen.getByText(/실시간 위협 탐지/)).toBeInTheDocument();
-    expect(screen.getByText('AI 탐지')).toBeInTheDocument();
-    expect(screen.getByText('CRITICAL')).toBeInTheDocument();
+    expect(screen.getByText(/위협 탐지/)).toBeInTheDocument();
+    expect(screen.getByText('152')).toBeInTheDocument();
+    expect(screen.getByText('0.9123')).toBeInTheDocument();
+    expect(screen.getAllByText('CRITICAL')).toHaveLength(2);
     expect(screen.getByText('URL 공격 키워드')).toBeInTheDocument();
     expect(screen.getByText(/NEW/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', {name: '152'}));
+    expect(onLogSelect).toHaveBeenCalledWith(152);
 });
 
 /* 

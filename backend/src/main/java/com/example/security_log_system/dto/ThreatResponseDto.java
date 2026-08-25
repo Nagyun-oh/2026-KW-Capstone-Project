@@ -13,6 +13,8 @@ public class ThreatResponseDto {
     private Long id;
     private Long logId;
     private String threatType;
+    private String detectionSource;
+    private Double threatScore;
     private String severity;
     private String description;
     private boolean checked;
@@ -24,6 +26,8 @@ public class ThreatResponseDto {
                 .logId(threat.getLogEntry() !=null
                     ? threat.getLogEntry().getId() : null)
                 .threatType(threat.getThreatType())
+                .detectionSource(threat.getDetectionSource())
+                .threatScore(threat.getThreatScore())
                 .severity(threat.getSeverity())
                 .description(threat.getDescription())
                 .checked(threat.isChecked())

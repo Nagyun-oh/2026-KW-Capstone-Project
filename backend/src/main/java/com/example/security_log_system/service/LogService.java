@@ -2,9 +2,11 @@ package com.example.security_log_system.service;
 
 import com.example.security_log_system.config.StaticResourceFilterProperties;
 import com.example.security_log_system.dto.AiRequestDto;
+import com.example.security_log_system.dto.LogDetailResponseDto;
 import com.example.security_log_system.dto.LogResponseDto;
 import com.example.security_log_system.dto.LogSearchCondition;
 import com.example.security_log_system.entity.LogEntry;
+import com.example.security_log_system.exception.LogNotFoundException;
 import com.example.security_log_system.kafka.AiRequestProducer;
 import com.example.security_log_system.repository.LogRepository;
 import com.example.security_log_system.repository.LogSpecification;
@@ -41,12 +43,19 @@ public class LogService {
     private final AiRequestProducer aiRequestProducer;
     private final StaticResourceFilterProperties staticResourceFilterProperties;
 
-    // GET
+    // 목록에는 요약 정보만 반환해 대용량 audit JSON의 반복 전송을 피한다.
     @Transactional(readOnly = true)
     public Page<LogResponseDto> getLogs(LogSearchCondition condition, Pageable pageable){
         return logRepository
                 .findAll(LogSpecification.search(condition),pageable)
                 .map(LogResponseDto::from);
+    }
+
+    @Transactional(readOnly = true)
+    public LogDetailResponseDto getLog(Long logId) {
+        return logRepository.findById(logId)
+                .map(LogDetailResponseDto::from)
+                .orElseThrow(() -> new LogNotFoundException(logId));
     }
 
 
