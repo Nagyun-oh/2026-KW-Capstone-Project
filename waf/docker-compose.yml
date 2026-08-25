@@ -13,6 +13,14 @@ services:
       - PORT=8080
       # ModSecurity 룰 엔진 활성화(On), 탐지만 하려면 DetectionOnly 사용
       - MODSEC_RULE_ENGINE=DetectionOnly
+      # 정상/공격 여부와 관계없이 모든 요청의 상세 감사 로그 생성
+      - MODSEC_AUDIT_ENGINE=On
+      # 요청 헤더/Body와 응답 헤더를 JSON 파일로 기록
+      - MODSEC_AUDIT_LOG=/var/log/nginx/audit.log
+      - MODSEC_AUDIT_LOG_FORMAT=JSON
+      - MODSEC_AUDIT_LOG_TYPE=Serial
+      - MODSEC_AUDIT_LOG_PARTS=ABCFHZ
+
       # CRS 탐지 민감도(1~4). 높을수록 탐지 룰이 많아지고 오탐 가능성도 증가
       - PARANOIA=2
       # 요청(inbound) 누적 이상 점수가 이 값 이상이면 차단
@@ -33,7 +41,7 @@ services:
       - "host.docker.internal:host-gateway"
 
   fluent-bit:
-    # WAF access.log를 읽어 Kafka로 전송하는 로그 수집기
+    # WAF audit.log를 읽어 Kafka로 전송하는 로그 수집기
     image: fluent/fluent-bit:2.2
     container_name: waf-fluent-bit
     depends_on:
@@ -43,7 +51,7 @@ services:
       - ./logs:/var/log/nginx:ro
       # Fluent Bit 입력/출력 설정
       - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
-      # Nginx access.log 파서 설정
+      # ModSecurity audit/Nginx 로그 파서 설정
       - ./parsers.conf:/fluent-bit/etc/parsers.conf:ro
 
 networks:

@@ -1,5 +1,6 @@
 package com.example.security_log_system.service;
 
+import com.example.security_log_system.config.StaticResourceFilterProperties;
 import com.example.security_log_system.dto.AiRequestDto;
 import com.example.security_log_system.dto.LogResponseDto;
 import com.example.security_log_system.dto.LogSearchCondition;
@@ -10,12 +11,16 @@ import com.example.security_log_system.repository.LogSpecification;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
@@ -26,9 +31,15 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class LogService {
 
+    private static final String MASKED_VALUE = "***";
+    private static final Pattern SENSITIVE_FORM_FIELD = Pattern.compile(
+            "(?i)(^|&)((?:password|passwd|token|access_token|refresh_token|api_key|secret|session)[^=]*)=([^&]*)"
+    );
+
     private final LogRepository logRepository;
     private final BlacklistService blacklistService;
     private final AiRequestProducer aiRequestProducer;
+    private final StaticResourceFilterProperties staticResourceFilterProperties;
 
     // GET
     @Transactional(readOnly = true)
@@ -45,6 +56,12 @@ public class LogService {
     public void processRawLog(String kafkaMessage) {
         try{
             JsonNode jsonNode = objectMapper.readTree(kafkaMessage);
+
+            // ModSecurity JSON audit log
+            if(jsonNode.has("transaction")){
+                processModSecurityAuditJson(jsonNode);
+                return;
+            }
 
             // {"log" : "..."} 테스트
             if(jsonNode.has("log")){
@@ -68,6 +85,191 @@ public class LogService {
             // 로그  파싱 실패 시 런타임 예외로 던져서 전체 트랙잭션 롤백 유도
             throw new RuntimeException("Kafka message parsing error: ",exception);
         }
+    }
+
+    private void processModSecurityAuditJson(JsonNode auditNode) {
+        JsonNode transaction = auditNode.path("transaction");
+        JsonNode request = transaction.path("request");
+        JsonNode response = transaction.path("response");
+
+        String ipAddress = transaction.path("client_ip").asText("0.0.0.0");
+        String method = request.path("method").asText("");
+        String fullPath = request.path("uri").asText("/");
+        String bodyContent = sanitizeBody(request.path("body").asText(""));
+        String userAgent = findHeaderIgnoreCase(request.path("headers"), "User-Agent");
+        int statusCode = response.path("http_code").asInt(0);
+
+        String urlPath = fullPath;
+        String queryParams = "";
+        int queryIndex = fullPath.indexOf('?');
+        if (queryIndex >= 0) {
+            urlPath = fullPath.substring(0, queryIndex);
+            queryParams = fullPath.substring(queryIndex + 1);
+        }
+
+        // 경로만 신뢰하지 않고 서버가 반환한 Content-Type까지 함께 확인한다.
+        String responseContentType = findHeaderIgnoreCase(response.path("headers"), "Content-Type");
+        if (shouldSkipStaticResource(
+                method,
+                urlPath,
+                queryParams,
+                bodyContent,
+                statusCode,
+                responseContentType,
+                transaction.path("messages")
+        )) {
+            log.debug("Safe static resource skipped. method={}, path={}, contentType={}",
+                    method, urlPath, responseContentType);
+            return;
+        }
+
+        JsonNode sanitizedAuditNode = sanitizeAuditLog(auditNode);
+        LogEntry entry = logRepository.save(LogEntry.builder()
+                .ipAddress(ipAddress)
+                .requestMethod(method)
+                .requestUrl(fullPath)
+                .statusCode(statusCode)
+                .rawLog(sanitizedAuditNode.toString())
+                .createdAt(LocalDateTime.now())
+                .build());
+
+        AiRequestDto aiRequest = AiRequestDto.builder()
+                .logId(entry.getId())
+                .method(method)
+                .urlPath(urlPath)
+                .queryParams(queryParams)
+                .bodyContent(bodyContent)
+                .userAgent(userAgent)
+                .urlLen(fullPath.length())
+                .specialCharCount(countSpecialChars(fullPath + " " + bodyContent))
+                .ipAddress(ipAddress)
+                .timestamp(LocalDateTime.now().toString())
+                .build();
+
+        // 보수적인 정적 리소스 필터를 통과하지 않은 요청은 AI 분석 대상으로 전달한다.
+        aiRequestProducer.sendAnalysisRequest(aiRequest);
+    }
+
+    private boolean shouldSkipStaticResource(
+            String method,
+            String urlPath,
+            String queryParams,
+            String bodyContent,
+            int statusCode,
+            String responseContentType,
+            JsonNode wafMessages
+    ) {
+        if (!staticResourceFilterProperties.isEnabled()) {
+            return false;
+        }
+
+        // 서비스 설정(메서드·경로·응답 형식)을 모두 만족해야 정적 요청 후보가 된다.
+        boolean allowedMethod = staticResourceFilterProperties.getMethods().stream()
+                .anyMatch(configuredMethod -> configuredMethod.equalsIgnoreCase(method));
+        boolean knownStaticPath = staticResourceFilterProperties.getPathPrefixes().stream()
+                .anyMatch(urlPath::startsWith);
+        boolean staticContentType = staticResourceFilterProperties.getContentTypes().stream()
+                .anyMatch(configuredType -> responseContentType
+                        .toLowerCase()
+                        .startsWith(configuredType.toLowerCase()));
+        boolean knownStaticExtension = staticResourceFilterProperties.getExtensions().stream()
+                .anyMatch(extension -> urlPath.toLowerCase().endsWith(extension.toLowerCase()));
+        boolean staticRepresentation = staticContentType
+                || (statusCode == 304 && knownStaticExtension);
+        // WAF 탐지나 우회 가능성이 조금이라도 있으면 로그와 AI 분석을 유지한다.
+        boolean safeStatus = statusCode == 200 || statusCode == 304;
+        boolean noWafDetection = wafMessages.isArray() && wafMessages.isEmpty();
+        boolean canonicalPath = !urlPath.contains("..")
+                && !urlPath.contains("%")
+                && !urlPath.contains(";")
+                && !urlPath.contains("\\")
+                && urlPath.indexOf('\0') < 0;
+
+        return allowedMethod
+                && knownStaticPath
+                && staticRepresentation
+                && safeStatus
+                && noWafDetection
+                && canonicalPath
+                && queryParams.isBlank()
+                && bodyContent.isBlank();
+    }
+
+    private String findHeaderIgnoreCase(JsonNode headers, String headerName) {
+        if (!headers.isObject()) {
+            return "";
+        }
+        Iterator<Map.Entry<String, JsonNode>> fields = headers.fields();
+        while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> field = fields.next();
+            if (field.getKey().equalsIgnoreCase(headerName)) {
+                return field.getValue().asText("");
+            }
+        }
+        return "";
+    }
+
+    private JsonNode sanitizeAuditLog(JsonNode auditNode) {
+        JsonNode copy = auditNode.deepCopy();
+        JsonNode request = copy.path("transaction").path("request");
+        sanitizeHeaders(request.path("headers"));
+        sanitizeHeaders(copy.path("transaction").path("response").path("headers"));
+        if (request instanceof ObjectNode requestObject && request.has("body")) {
+            requestObject.put("body", sanitizeBody(request.path("body").asText("")));
+        }
+        return copy;
+    }
+
+    private void sanitizeHeaders(JsonNode headers) {
+        if (headers instanceof ObjectNode headerObject) {
+            headerObject.fields().forEachRemaining(field -> {
+                if (isSensitiveField(field.getKey())) {
+                    headerObject.put(field.getKey(), MASKED_VALUE);
+                }
+            });
+        }
+    }
+
+    private String sanitizeBody(String body) {
+        if (body == null || body.isBlank()) {
+            return "";
+        }
+        try {
+            JsonNode bodyJson = objectMapper.readTree(body);
+            redactSensitiveFields(bodyJson);
+            return objectMapper.writeValueAsString(bodyJson);
+        } catch (JsonProcessingException ignored) {
+            return SENSITIVE_FORM_FIELD.matcher(body).replaceAll("$1$2=" + MASKED_VALUE);
+        }
+    }
+
+    private void redactSensitiveFields(JsonNode node) {
+        if (node instanceof ObjectNode objectNode) {
+            objectNode.fields().forEachRemaining(field -> {
+                if (isSensitiveField(field.getKey())) {
+                    objectNode.put(field.getKey(), MASKED_VALUE);
+                } else {
+                    redactSensitiveFields(field.getValue());
+                }
+            });
+        } else if (node instanceof ArrayNode arrayNode) {
+            arrayNode.forEach(this::redactSensitiveFields);
+        }
+    }
+
+    private boolean isSensitiveField(String fieldName) {
+        String normalized = fieldName.toLowerCase().replace("-", "_");
+        return normalized.equals("authorization")
+                || normalized.equals("proxy_authorization")
+                || normalized.equals("cookie")
+                || normalized.equals("set_cookie")
+                || normalized.contains("password")
+                || normalized.equals("passwd")
+                || normalized.contains("token")
+                || normalized.contains("api_key")
+                || normalized.equals("apikey")
+                || normalized.contains("secret")
+                || normalized.contains("session");
     }
 
     private void processNginxLog(String message) {

@@ -38,12 +38,37 @@ Client -> WAF (port 80) -> Juice Shop (port 3000)
 
 ## 로그 파이프라인
 
-WAF는 `/var/log/nginx/access.log`에 요청 로그를 남기고, `/var/log/nginx/error.log`에 Nginx 오류와 ModSecurity 탐지 상세 로그를 남깁니다. 두 경로는 호스트의 `waf/logs/` 폴더와 연결되어 있고, Fluent Bit가 각 파일을 읽어서 Kafka로 전송합니다.
+WAF는 `/var/log/nginx/access.log`에 요청 요약을 남기고, `/var/log/nginx/audit.log`에 요청 헤더·Body·응답 헤더·ModSecurity 탐지 결과를 JSON으로 남깁니다. 경로는 호스트의 `waf/logs/` 폴더와 연결되어 있고, Fluent Bit는 audit 로그를 Kafka로 전송합니다. 정상 정적 리소스도 WAF 미탐 보완을 위해 전송 대상에서 제외하지 않으며, 응답 Body와 파일 바이너리는 audit part에서 제외합니다.
 
 ```text
-WAF/Nginx access.log -> Fluent Bit -> Kafka topic(log-topic)
-WAF/Nginx error.log  -> Fluent Bit -> Kafka topic(waf-error-topic)
+WAF/ModSecurity audit.log -> Fluent Bit -> Kafka topic(log-topic)
+WAF/Nginx error.log       -> Fluent Bit -> Kafka topic(waf-error-topic)
 ```
+
+Spring Boot는 audit 이벤트를 모두 확인한 뒤, 설정된 정적 경로에서 발생한 안전한 `GET`/`HEAD` 요청만 DB 저장과 AI 분석에서 제외합니다. Query/Body가 있거나 WAF 룰이 탐지되었거나 경로가 비정상적인 요청은 정적 경로여도 그대로 분석합니다.
+
+```yaml
+security:
+  log-filter:
+    static-resource:
+      enabled: true
+      path-prefixes:
+        - /assets/
+        - /media/
+      content-types:
+        - image/
+        - font/
+        - text/css
+      extensions: # Content-Type이 생략된 304 응답에만 사용
+        - .png
+        - .jpg
+        - .jpeg
+      methods:
+        - GET
+        - HEAD
+```
+
+다른 애플리케이션에 적용할 때는 `backend/src/main/resources/application.yml`의 `path-prefixes`만 해당 서비스의 정적 경로로 변경합니다. 필터를 사용하지 않으려면 `enabled: false`로 설정합니다.
 
 확인 명령:
 

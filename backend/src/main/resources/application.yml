@@ -39,3 +39,33 @@ management:
 # 이 스프링 프로젝트가 실행될 때 사용하는 포트번호. 웹 브라우저에서 localhost:8080으로 접속하게됨.
 server:
   port: 8080
+
+# WAF는 모든 요청을 검사하고 Kafka까지 전달한다.
+# 아래 조건을 모두 만족하는 정상 정적 요청만 DB 저장과 AI 분석에서 제외한다.
+security:
+  log-filter:
+    static-resource:
+      enabled: true
+      path-prefixes:
+        - /assets/
+        - /media/
+      content-types:
+        - image/
+        - font/
+        - text/css
+      # 304 응답은 Content-Type이 없을 수 있어, 이때만 확장자를 보조 조건으로 사용한다.
+      extensions:
+        - .png
+        - .jpg
+        - .jpeg
+        - .gif
+        - .webp
+        - .svg
+        - .ico
+        - .woff
+        - .woff2
+        - .ttf
+        - .css
+      methods:
+        - GET
+        - HEAD

@@ -1,6 +1,7 @@
 package com.example.security_log_system.service;
 
 
+import com.example.security_log_system.config.StaticResourceFilterProperties;
 import com.example.security_log_system.dto.AiRequestDto;
 import com.example.security_log_system.dto.LogResponseDto;
 import com.example.security_log_system.dto.LogSearchCondition;
@@ -42,6 +43,9 @@ public class LogServiceTest {
 
     @Mock
     private AiRequestProducer aiRequestProducer;
+
+    @Mock
+    private StaticResourceFilterProperties staticResourceFilterProperties;
 
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
@@ -101,6 +105,127 @@ public class LogServiceTest {
         // then
         verify(logRepository,never()).save(any());
         verify(aiRequestProducer,never()).sendAnalysisRequest(any());
+    }
+
+    @Test
+    @DisplayName("ModSecurity audit JSON의 요청 Body를 AI에 전달하고 민감정보는 마스킹한다")
+    void modSecurityAuditMessage_thenSaveSanitizedLogAndSendBodyToAi(){
+        String message = """
+                {
+                  "transaction": {
+                    "client_ip": "192.168.0.10",
+                    "request": {
+                      "method": "POST",
+                      "uri": "/rest/user/login?source=test",
+                      "body": "{\\\"email\\\":\\\"admin' OR '1'='1' --\\\",\\\"password\\\":\\\"plain-secret\\\"}",
+                      "headers": {
+                        "User-Agent": "JUnit",
+                        "Authorization": "Bearer secret-token",
+                        "Cookie": "session=secret"
+                      }
+                    },
+                    "response": {
+                      "http_code": 200,
+                      "headers": {"Set-Cookie": "token=response-secret"}
+                    },
+                    "messages": [{"details": {"ruleId": "942100"}}]
+                  }
+                }
+                """;
+
+        when(logRepository.save(any(LogEntry.class))).thenAnswer(invocation -> {
+            LogEntry logEntry = invocation.getArgument(0);
+            ReflectionTestUtils.setField(logEntry, "id", 7L);
+            return logEntry;
+        });
+
+        ArgumentCaptor<LogEntry> logCaptor = ArgumentCaptor.forClass(LogEntry.class);
+        ArgumentCaptor<AiRequestDto> aiCaptor = ArgumentCaptor.forClass(AiRequestDto.class);
+
+        logService.processRawLog(message);
+
+        verify(logRepository).save(logCaptor.capture());
+        verify(aiRequestProducer).sendAnalysisRequest(aiCaptor.capture());
+
+        LogEntry savedLog = logCaptor.getValue();
+        assertThat(savedLog.getRequestMethod()).isEqualTo("POST");
+        assertThat(savedLog.getRequestUrl()).isEqualTo("/rest/user/login?source=test");
+        assertThat(savedLog.getRawLog()).contains("942100", "admin' OR '1'='1' --");
+        assertThat(savedLog.getRawLog()).doesNotContain(
+                "plain-secret", "secret-token", "session=secret", "response-secret"
+        );
+
+        AiRequestDto aiRequest = aiCaptor.getValue();
+        assertThat(aiRequest.getLogId()).isEqualTo(7L);
+        assertThat(aiRequest.getUrlPath()).isEqualTo("/rest/user/login");
+        assertThat(aiRequest.getQueryParams()).isEqualTo("source=test");
+        assertThat(aiRequest.getBodyContent()).contains("admin' OR '1'='1' --", "\"password\":\"***\"");
+        assertThat(aiRequest.getUserAgent()).isEqualTo("JUnit");
+    }
+
+    @Test
+    @DisplayName("안전 조건을 모두 만족한 정적 이미지는 DB 저장과 AI 분석에서 제외한다")
+    void safeStaticImage_thenSkipDbAndAi(){
+        String message = """
+                {
+                  "transaction": {
+                    "client_ip": "192.168.0.10",
+                    "request": {
+                      "method": "GET",
+                      "uri": "/assets/logo.png",
+                      "body": "",
+                      "headers": {"User-Agent": "JUnit"}
+                    },
+                    "response": {
+                      "http_code": 200,
+                      "headers": {"Content-Type": "image/png"}
+                    },
+                    "messages": []
+                  }
+                }
+                """;
+
+        when(staticResourceFilterProperties.isEnabled()).thenReturn(true);
+        when(staticResourceFilterProperties.getMethods()).thenReturn(List.of("GET", "HEAD"));
+        when(staticResourceFilterProperties.getPathPrefixes()).thenReturn(List.of("/assets/", "/media/"));
+        when(staticResourceFilterProperties.getContentTypes()).thenReturn(List.of("image/", "font/", "text/css"));
+        when(staticResourceFilterProperties.getExtensions()).thenReturn(List.of(".png", ".jpg", ".jpeg"));
+
+        logService.processRawLog(message);
+
+        verify(logRepository, never()).save(any());
+        verify(aiRequestProducer, never()).sendAnalysisRequest(any());
+    }
+
+    @Test
+    @DisplayName("Content-Type이 생략된 304 정적 이미지는 허용 확장자로 확인해 제외한다")
+    void cachedStaticImageWithoutContentType_thenSkipDbAndAi(){
+        String message = """
+                {
+                  "transaction": {
+                    "client_ip": "192.168.0.10",
+                    "request": {
+                      "method": "GET",
+                      "uri": "/assets/public/images/products/apple_juice.jpg",
+                      "body": "",
+                      "headers": {"User-Agent": "JUnit"}
+                    },
+                    "response": {"http_code": 304, "headers": {}},
+                    "messages": []
+                  }
+                }
+                """;
+
+        when(staticResourceFilterProperties.isEnabled()).thenReturn(true);
+        when(staticResourceFilterProperties.getMethods()).thenReturn(List.of("GET", "HEAD"));
+        when(staticResourceFilterProperties.getPathPrefixes()).thenReturn(List.of("/assets/", "/media/"));
+        when(staticResourceFilterProperties.getContentTypes()).thenReturn(List.of("image/", "font/", "text/css"));
+        when(staticResourceFilterProperties.getExtensions()).thenReturn(List.of(".png", ".jpg", ".jpeg"));
+
+        logService.processRawLog(message);
+
+        verify(logRepository, never()).save(any());
+        verify(aiRequestProducer, never()).sendAnalysisRequest(any());
     }
 
    @Test
