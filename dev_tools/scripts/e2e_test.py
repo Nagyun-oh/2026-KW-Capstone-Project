@@ -33,7 +33,7 @@ def check_backend_logs():
     response.raise_for_status()
 
     # API 응답 JSON을 Python 리스트/딕셔너리로 변환
-    logs = response.json()
+    logs = response.json().get("content",[])
 
     # API/DB 에서 가져온 로그 중에 방금 보낸 테스트 로그와 일치하는 게 있는지 찾음
     matched = [

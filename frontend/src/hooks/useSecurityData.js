@@ -90,6 +90,14 @@ function useSecurityData() {
     });
   };
 
+  const fetchLogById = async id => {
+    const response = await axios.get(
+      `${process.env.REACT_APP_API_BASE_URL}/api/v1/logs/${id}`
+    );
+
+    return response.data;
+  };
+
   const fetchThreats = (page =0, search = threatSearch) => {
     const params = {page, size:20};
 
@@ -206,6 +214,7 @@ function useSecurityData() {
       blacklistPage,
       fetchLogs,
       fetchThreats,
+      fetchLogById,
       fetchBlacklists,
       fetchAllData,
       searchLogs,

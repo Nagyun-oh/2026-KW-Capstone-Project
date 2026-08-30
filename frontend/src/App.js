@@ -1,5 +1,5 @@
-import React from 'react';
-import {ToastContainer} from 'react-toastify';  // 토스트 라이브러리 추가
+import React, {useState} from 'react';
+import {ToastContainer} from 'react-toastify';  
 import 'react-toastify/dist/ReactToastify.css';
 
 import ThreatTable from './components/ThreatTable';
@@ -7,6 +7,7 @@ import BlacklistTable from './components/BlacklistTable';
 import LogTable from './components/LogTable';
 import useSecurityData from './hooks/useSecurityData';
 import useWebSocket from './hooks/useWebSocket';
+import LogDetailModal from './components/LogDetailModal';
 
 function App() {
  
@@ -18,6 +19,7 @@ function App() {
       threatPage,
       blacklistPage,
       fetchLogs,
+      fetchLogById,
       fetchThreats,
       fetchBlacklists,
       fetchAllData, 
@@ -35,6 +37,39 @@ function App() {
     fetchBlacklists(0);
   });
 
+  const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+  const [selectedLog,setSelectedLog] = useState(null);
+  const [isLogLoading,setIsLogLoading] = useState(false);
+  const [logDetailError,setLogDetailError] = useState('');
+
+  const handleViewLog = async logId => {
+  setIsLogModalOpen(true);
+  setSelectedLog(null);
+  setLogDetailError('');
+  setIsLogLoading(true);
+
+  try {
+    const log = await fetchLogById(logId);
+    setSelectedLog(log);
+  } catch (error) {
+    console.error('로그 상세 조회 실패', error);
+
+    if (error.response?.status === 404) {
+      setLogDetailError('해당 원본 로그를 찾을 수 없습니다.');
+    } else {
+      setLogDetailError('로그 상세 정보를 불러오지 못했습니다.');
+    }
+  } finally {
+    setIsLogLoading(false);
+  }
+};
+
+const handleCloseLogModal = () => {
+  setIsLogModalOpen(false);
+  setSelectedLog(null);
+  setLogDetailError('');
+};
+
  return (
     <div style={{ padding: '30px', backgroundColor: '#f4f7f6', minHeight: '100vh', fontFamily: 'sans-serif' }}>
       <h1>🛡️대시보드</h1>
@@ -50,6 +85,14 @@ function App() {
           }
            </div>
       )}
+
+      <LogDetailModal
+        isOpen = {isLogModalOpen}
+        log = {selectedLog}
+        loading={isLogLoading}
+        error = {logDetailError}
+        onClose={handleCloseLogModal}
+      />
 
       <button onClick={fetchAllData} style={{ padding: '20px 20px', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', marginBottom: '20px', fontWeight: 'bold' }}>
         🔄 전체 데이터 새로고침
@@ -69,6 +112,7 @@ function App() {
         onPageChange = {fetchThreats}
         onSearch = {searchThreats}
         onReset={resetThreatSearch}
+        onViewLog={handleViewLog}
        />
       <BlacklistTable 
         blacklists={blacklists} 
@@ -76,6 +120,7 @@ function App() {
         onPageChange = {fetchBlacklists}
         onSearch={searchBlacklists}
         onReset={resetBlacklistSearch}
+        onViewLog={handleViewLog}
       />
     </div>
   </div>    

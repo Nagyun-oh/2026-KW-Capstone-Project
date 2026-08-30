@@ -28,9 +28,11 @@ test('탐지된 위협 정보를 화면에 표시한다', () => {
     />
     );
 
-    expect(screen.getByText(/실시간 위협 탐지/)).toBeInTheDocument();
+    const table = screenTop.getByRole('table');
+
+    expect(screen.getByText(/위협 탐지/)).toBeInTheDocument();
     expect(screen.getByText('AI 탐지')).toBeInTheDocument();
-    expect(screen.getByText('CRITICAL')).toBeInTheDocument();
+    expect(within(table).getByText('CRITICAL')).toBeInTheDocument();
     expect(screen.getByText('URL 공격 키워드')).toBeInTheDocument();
     expect(screen.getByText(/NEW/)).toBeInTheDocument();
 });
