@@ -38,8 +38,8 @@ public class ThreatController {
         return ResponseEntity.ok(threatService.getThreats(condition,pageable));
     }
 
-    // AI 결과를 HTTP로 직접 수신하는 보조/테스트용 API
-    // 운영의 기본 AI 결과 처리 흐름은 ai-result-topic을 사용한다.
+
+    // POST
     @PostMapping("/detect")
     public ResponseEntity<String> receiveDetect(@Valid @RequestBody ThreatDto threatDto){
         threatService.saveDetectedThreat(threatDto);

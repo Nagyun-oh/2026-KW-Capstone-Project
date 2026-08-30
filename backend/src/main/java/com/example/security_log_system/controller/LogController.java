@@ -37,8 +37,10 @@ public class LogController {
         return ResponseEntity.ok(logService.getLogs(condition,pageable));
     }
 
-
-
-
+    // ID로 원본 로그 상세 조회
+    @GetMapping("/{id}")
+    public ResponseEntity<LogResponseDto> getLogById(@PathVariable Long id){
+        return ResponseEntity.of(logService.getLogById(id));
+    }
 
 }

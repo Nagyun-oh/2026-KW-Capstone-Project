@@ -48,8 +48,10 @@ public class ThreatService {
                 .description(threatDto.getDescription())
                 .build();
 
-        threatRepository.save(threat);
+        DetectedThreat savedThreat = threatRepository.save(threat);
+
         incrementThreatDetectedMetric(threat.getSeverity());
+
         log.info("Threat recorded through HTTP endpoint. type={},severity={}",
                 threat.getThreatType(),
                 threat.getSeverity()
@@ -58,7 +60,7 @@ public class ThreatService {
         // 위험도가 높으면 자동으로 블랙리스트 등록
         if (threatDto.getDangerLevel() >= 4) {
             blacklistService.addToBlacklist(threatDto.getClientIp(), " [API 수동 테스트]" + threatDto.getThreatType()
-                    , threatDto.getDangerLevel());
+                    , threatDto.getDangerLevel(),savedThreat);
 
             notificationService.sendUrgentAlert(threatDto.getClientIp(),"[API 수동 테스트]",threatDto.getDangerLevel());
             log.warn("Critical threat added to blacklist. type={}, dangerLevel={}",
@@ -66,7 +68,6 @@ public class ThreatService {
                     threat.getSeverity()
             );
         }
-
     }
 
     // Kafka AI 분석 결과를 기반으로 위협 저장
@@ -83,6 +84,7 @@ public class ThreatService {
         if("0.0.0.0".equals(aiResponse.getIpAddress())){
             return;
         }
+
         DetectedThreat threat = DetectedThreat.builder()
                 .logEntry(entry)
                 .threatType("AI Detection")
@@ -90,11 +92,13 @@ public class ThreatService {
                 .description(aiResponse.getReason())
                 .detectedAt(LocalDateTime.now())
                 .build();
-        threatRepository.save(threat);
+
+        DetectedThreat savedThreat = threatRepository.save(threat);
+
         incrementThreatDetectedMetric(threat.getSeverity());
 
         if(aiResponse.getThreatScore() >= 0.8){
-            blacklistService.addToBlacklist(aiResponse.getIpAddress(), aiResponse.getReason(), 4);
+            blacklistService.addToBlacklist(aiResponse.getIpAddress(), aiResponse.getReason(), 4,savedThreat);
             notificationService.sendUrgentAlert(aiResponse.getIpAddress(), "AI Detection",4);
         }
     }
