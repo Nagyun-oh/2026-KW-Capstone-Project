@@ -1,10 +1,22 @@
 import React,{useState} from 'react';
 
-function BlacklistTable({ blacklists,pageInfo,onPageChange,onSearch,onReset }) {
+function BlacklistTable({ blacklists,pageInfo,onPageChange,onSearch,onReset,onViewLog }) {
   const [form,setForm] = useState({
     ip: "",
     dangerLevel: "",
   });
+
+  const getDangerLevelLabel = dangerLevel => {
+    if(dangerLevel >=4){
+      return 'CRITICAL';
+    }
+
+    if(dangerLevel >=3){
+      return 'HIGH';
+    }
+
+    return 'MEDIUM';
+  };
 
   const handleChange = event => {
     const {name, value} = event.target;
@@ -53,17 +65,49 @@ function BlacklistTable({ blacklists,pageInfo,onPageChange,onSearch,onReset }) {
       <table border="1" style={{ width: '100%', borderCollapse: 'collapse' }}>
         <thead style={{ backgroundColor: '#f8f9fa' }}>
           <tr>
+            <th>원인 위협</th>
+            <th>원본 로그</th>
             <th>IP 주소</th>
             <th>차단 사유</th>
-            <th>위험 수치</th>
+            <th>위험도</th>
           </tr>
         </thead>
         <tbody>
           {blacklists.map(b => (
             <tr key={b.id} style={{ textAlign: 'center' }}>
+              <td>
+                {b.sourceThreatId !=null
+                ? `#${b.sourceThreatId}`
+                : '-'
+              }
+              </td>
+              <td>
+                {b.logId !=null ? (
+                <button
+                  type="button"
+                  onClick={() => onViewLog(b.logId)}
+                  title = {`원본 로그 #${b.logId} 보기`}
+                  aria-label = {`원본 로그 #${b.logId} 보기`}
+                >
+                    #{b.logId}
+                </button>  
+                ) : b.sourceThreatId != null ?(
+                  `원본 로그 없음`
+                ) : (
+                  `수동 등록`
+                )}
+              </td>
+
               <td style={{ fontWeight: 'bold' }}>{b.ipAddress}</td>
               <td>{b.reason}</td>
-              <td>{b.dangerLevel}</td>
+              <td
+                style = {{
+                  color: b.dangerLevel >=4 ? 'red' : 'orange',
+                  fontWeight: 'bold',
+                }}
+              >
+                {getDangerLevelLabel(b.dangerLevel)} ({b.dangerLevel})
+                </td>
             </tr>
           ))}
         </tbody>

@@ -1,4 +1,4 @@
-import {render,screen} from '@testing-library/react';
+import {render,screen, within} from '@testing-library/react';
 import LogTable from './LogTable';  
 
 // 대시보드 테이블 컴포넌트의 렌더링 검증 테스트 (API 호출 테스트 X)
@@ -23,8 +23,11 @@ test('전체 네트워크 로그를 화면에 표시한다.', () =>{
         totalElements:1,
         size:20,
     };
-    const onPageChange = jest.fn();
 
+    const onPageChange = jest.fn();
+    const onSearch = jest.fn();
+    const onReset = jest.fn();
+   
     // LogTable에 logs를 props로 넣어서 화면에 렌더링
     // -> 실제 브라우저를 띄우는게 아니라, 테스트 환경에서 가상의 DOM
     render(
@@ -32,15 +35,21 @@ test('전체 네트워크 로그를 화면에 표시한다.', () =>{
         logs={logs}
         pageInfo={pageInfo}
         onPageChange={onPageChange}
+        onSearch={onSearch}
+        onReset={onReset}
     />)
-    ; 
+
+    const table = screen.getByRole('table');
 
     // 화면에 해당 텍스트가 실제로 표시됐는지 확인
-    expect(screen.getByText(/전체 네트워크 로그/)).toBeInTheDocument();
-    expect(screen.getByText('127.0.0.1')).toBeInTheDocument();
-    expect(screen.getByText('GET')).toBeInTheDocument();
-    expect(screen.getByText('/admin')).toBeInTheDocument();
-    expect(screen.getByText('403')).toBeInTheDocument();
+    expect(screen.getByText(/전체 로그/)).toBeInTheDocument();
+    expect(within(table).getByText('로그 번호')).toBeInTheDocument();
+    expect(within(table).getByText('#1')).toBeInTheDocument();
+    expect(within(table).getByText('127.0.0.1')).toBeInTheDocument();
+    expect(within(table).getByText('GET')).toBeInTheDocument();
+    expect(within(table).getByText('/admin')).toBeInTheDocument();
+    expect(within(table).getByText('403')).toBeInTheDocument();
+    
 });
 
 /* 

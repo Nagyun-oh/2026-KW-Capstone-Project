@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +39,12 @@ public class LogService {
                 .map(LogResponseDto::from);
     }
 
+    // ID로 원본 로그 하나 조회
+    @Transactional(readOnly = true)
+    public Optional<LogResponseDto> getLogById(Long id){
+        return logRepository.findById(id)
+                .map(LogResponseDto::from);
+    }
 
     // JSON 파싱을 위한 객체 추가
     private final ObjectMapper objectMapper;

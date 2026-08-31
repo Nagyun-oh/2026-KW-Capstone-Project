@@ -7,6 +7,7 @@ function ThreatTable ( {
   onPageChange,
   onSearch,
   onReset,
+  onViewLog,
 })
 {
   const [form,setForm] = useState({
@@ -70,7 +71,9 @@ return (
           <table border="1" style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead style={{ backgroundColor: '#fff5f5' }}>
               <tr>
-                <th>유형</th>
+                <th>위협 번호</th>
+                <th>원본 로그</th>
+                <th>탐지 유형</th>
                 <th>위험도</th>
                 <th>설명</th>
                 </tr>
@@ -78,6 +81,21 @@ return (
             <tbody>
               {threats.map(t => (
                 <tr key={t.id} style={{ textAlign: 'center' }}>
+                   <td>#{t.id}</td>
+                  <td>
+                    {t.logId !=null ? (
+                      <button
+                        type="button"
+                        onClick={() => onViewLog(t.logId)}
+                        title ={`원본 로그 #${t.logId} 보기`}
+                        aria-label ={`원본 로그 #${t.logId} 보기`}
+                      >
+                        #{t.logId}
+                      </button>
+                    ) : (
+                      '-'
+                    )}
+                  </td>
                   <td>{t.threatType}</td>
                   <td style={{ color: t.severity === 'CRITICAL' ? 'red' : 'orange' }}>{t.severity}</td>
                   <td>{t.description}</td>

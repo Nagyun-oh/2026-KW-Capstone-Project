@@ -17,6 +17,10 @@ public class IpBlacklist {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "source_threat_id")
+    private DetectedThreat sourceThreat;
+
     @Column(name = "ip_address",length = 45, nullable = false)
     private String ipAddress;
 

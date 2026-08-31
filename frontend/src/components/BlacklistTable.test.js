@@ -28,7 +28,7 @@ test('차단된 IP 정보를 화면에 표시한다', () => {
     />
 );
 
-    expect(screen.getByText(/현재 차단된 IP/)).toBeInTheDocument();
+    expect(screen.getByText(/차단 IP/)).toBeInTheDocument();
     expect(screen.getByText('127.0.0.1')).toBeInTheDocument();
     expect(screen.getByText('AI 탐지')).toBeInTheDocument();
     expect(screen.getByText('4')).toBeInTheDocument();

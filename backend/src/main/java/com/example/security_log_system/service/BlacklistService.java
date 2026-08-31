@@ -2,6 +2,7 @@ package com.example.security_log_system.service;
 
 import com.example.security_log_system.dto.BlacklistResponseDto;
 import com.example.security_log_system.dto.BlacklistSearchCondition;
+import com.example.security_log_system.entity.DetectedThreat;
 import com.example.security_log_system.entity.IpBlacklist;
 import com.example.security_log_system.repository.BlacklistRepository;
 import com.example.security_log_system.repository.BlacklistSpecification;
@@ -20,17 +21,25 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 @Transactional
 public class BlacklistService {
+
     private final BlacklistRepository blacklistRepository;
     private final MeterRegistry meterRegistry;
 
+    // GET
     @Transactional(readOnly = true)
     public Page<BlacklistResponseDto> getBlacklists(BlacklistSearchCondition condition, Pageable pageable){
         return blacklistRepository.findAll(BlacklistSpecification.search(condition),pageable)
                 .map(BlacklistResponseDto::from);
     }
 
-    // Update
-    public boolean addToBlacklist(String ip, String reason,int dangerLevel){
+    // 수동 블랙리스트 등록: 원인이 된 위협 x (ex. swaager ui를 통한 등록)
+    public boolean addToBlacklist(String ip, String reason, int dangerLevel){
+        return addToBlacklist(ip,reason,dangerLevel,null);
+    }
+
+
+    // 위협으로 인한 블랙리스트 등록
+    public boolean addToBlacklist(String ip, String reason, int dangerLevel, DetectedThreat sourceThreat){
 
         // 블랙리스트에 해당 ip가 이미 존재하면, 등록하지 않는다.
         if(isBlocked(ip)){
@@ -39,11 +48,13 @@ public class BlacklistService {
         }
 
         IpBlacklist blacklist = IpBlacklist.builder()
+                .sourceThreat(sourceThreat)
                 .ipAddress(ip)
                 .reason(reason)
                 .dangerLevel(dangerLevel)
                 .createdAt(LocalDateTime.now())
                 .build();
+
         blacklistRepository.save(blacklist);
 
         // 등록 성공 시 Counter 증가
