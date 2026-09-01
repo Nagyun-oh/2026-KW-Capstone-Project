@@ -28,6 +28,12 @@ services:
       - ./rules/CUSTOM-002-blacklist.conf:/etc/modsecurity.d/owasp-crs/rules/CUSTOM-002-blacklist.conf
       # WAF access/error 로그를 호스트 waf/logs 폴더에 저장
       - ./logs:/var/log/nginx
+      # access.log를 JSON + 요청 바디 포함 포맷으로 남기도록 기본 템플릿을 덮어씀
+      - ./nginx-logging.conf.template:/etc/nginx/templates/conf.d/logging.conf.template
+      # njs 모듈 로드 + 전체 요청 헤더를 JSON으로 만드는 변수($all_headers) 정의 (기본 nginx.conf 템플릿 덮어씀)
+      - ./nginx.conf.template:/etc/nginx/templates/nginx.conf.template
+      # 모든 요청 헤더를 JSON으로 직렬화하는 njs 스크립트
+      - ./njs:/etc/nginx/njs
     extra_hosts:
       # 컨테이너에서 Windows/호스트 머신의 localhost 서비스에 접근하기 위한 별칭
       - "host.docker.internal:host-gateway"
