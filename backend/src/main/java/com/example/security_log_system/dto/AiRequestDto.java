@@ -26,12 +26,6 @@ public class AiRequestDto {
     @JsonProperty("user_agent")
     private String userAgent;
 
-    @JsonProperty("url_len")
-    private int urlLen;
-
-    @JsonProperty("special_char_count")
-    private int specialCharCount;
-
     @JsonProperty("ip_address")
     private String ipAddress;
 
@@ -46,9 +40,6 @@ public class AiRequestDto {
         query_params:       str = ""    # URL 파라미터 (?뒤)
         body_content:       str = ""    # POST body 내용
         user_agent:         str = ""    # User-Agent 헤더값
-        url_len:            int = 0     # URL 전체 길이 (0이면 자동 계산)
-        special_char_count: int = 0     # 특수문자 개수  (0이면 자동 계산)
-    # ── 추가 컬럼 ──────────────────────────────────────
         ip_address:         str = ""    # 요청 IP  (ex. "192.168.0.10")
         timestamp:          str = ""    # 요청 시각 (ex. "2026-03-31T14:00:00")
 
