@@ -128,24 +128,6 @@ public class LogService {
         }
     }
 
-    private int countSpecialChars(String text){
-        if(text== null || text.isBlank()){
-            return 0;
-        }
-
-        String[] specialChars = {"'","\"","<",">","--",";","%"};
-        int count = 0;
-
-        for(String specialChar : specialChars){
-            int index = 0;
-            while((index = text.indexOf(specialChar,index)) >=0 ){
-                count++;
-                index +=specialChar.length();
-            }
-        }
-
-        return count;
-    }
 
     private void processWafAccessJson(JsonNode jsonNode){
         String ipAddress = jsonNode.path("remote_addr").asText("0.0.0.0");
@@ -153,6 +135,7 @@ public class LogService {
         String fullPath = jsonNode.path("path").asText("/");
         int statusCode = jsonNode.path("status").asInt(0);
         String userAgent = jsonNode.path("http_user_agent").asText("");
+        String bodyContent = jsonNode.path("request_body").asText("");
 
         String urlPath = fullPath;
         String queryParams = "";
@@ -179,10 +162,8 @@ public class LogService {
                 .method(method)
                 .urlPath(urlPath)
                 .queryParams(queryParams)
-                .bodyContent("")
+                .bodyContent(bodyContent)
                 .userAgent(userAgent)
-                .urlLen(fullPath.length())
-                .specialCharCount(countSpecialChars(fullPath))
                 .ipAddress(ipAddress)
                 .timestamp(LocalDateTime.now().toString())
                 .build();
@@ -219,8 +200,6 @@ public class LogService {
                 .queryParams(queryParams)
                 .bodyContent(bodyContent)
                 .userAgent(userAgent)
-                .urlLen(jsonNode.path("url_len").asInt(0))
-                .specialCharCount(jsonNode.path("special_char_count").asInt(0))
                 .ipAddress(ipAddress)
                 .timestamp(timestamp)
                 .build();
